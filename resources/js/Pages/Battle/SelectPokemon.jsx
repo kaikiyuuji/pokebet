@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 // ── Type Badge ────────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
     const [selected, setSelected] = useState(null);
     const [search, setSearch] = useState(filters.search ?? '');
     const searchTimer = useRef(null);
-    const { post, processing } = useForm({});
+    const [processing, setProcessing] = useState(false);
 
     // Debounced search
     useEffect(() => {
@@ -167,9 +167,10 @@ export default function SelectPokemon({ pokemons, types, filters }) {
     };
 
     const handleStart = () => {
-        if (!selected) return;
-        post(route('battle.store'), {
-            data: { pokemon_id: selected.id },
+        if (!selected || processing) return;
+        setProcessing(true);
+        router.post(route('battle.store'), { pokemon_id: selected.id }, {
+            onFinish: () => setProcessing(false),
         });
     };
 
