@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Actions\Battles\ApplyBattleRewardsAction;
 use App\Actions\Battles\CreateBattleAction;
 use App\Actions\Battles\SimulateBattleAction;
-use App\Game\Battle\MoveSelector;
 use App\Game\Battle\DamageCalculator;
+use App\Game\Battle\MoveSelector;
+use App\Game\Pokemon\PokeApiService;
+use App\Game\Pokemon\PokemonData;
 use App\Models\Battle;
-use App\Models\Pokemon;
-use App\Models\PokemonType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,33 +17,29 @@ use Inertia\Response;
 
 class BattleController extends Controller
 {
+    public function __construct(
+        private readonly PokeApiService $pokeApi,
+    ) {}
+
     // ── GET /battle/new ──────────────────────────────────────────
 
     public function create(Request $request): Response
     {
-        $query = Pokemon::with(['primaryType', 'secondaryType'])
-            ->where('is_available', true)
-            // Only show Pokémon that have at least 1 damage move imported
-            ->whereHas('moves', fn($q) => $q->where('damage_class', '!=', 'status')->where('power', '>', 0))
-            ->orderBy('pokeapi_id');
+        $page   = max(1, (int) $request->input('page', 1));
+        $search = trim((string) $request->input('search', ''));
 
-        if ($search = $request->input('search')) {
-            $query->where('name', 'ilike', "%{$search}%");
-        }
-
-        if ($typeSlug = $request->input('type')) {
-            $query->where(function ($q) use ($typeSlug) {
-                $q->whereHas('primaryType', fn($t) => $t->where('slug', $typeSlug))
-                  ->orWhereHas('secondaryType', fn($t) => $t->where('slug', $typeSlug));
-            });
-        }
+        $browse = $this->pokeApi->browse($page, 48, $search);
 
         return Inertia::render('Battle/SelectPokemon', [
-            'pokemons' => $query->paginate(48)->withQueryString()->through(
-                fn($p) => $this->serializePokemon($p)
-            ),
-            'types'   => PokemonType::orderBy('name')->get(['id', 'name', 'slug']),
-            'filters' => $request->only(['search', 'type']),
+            'pokemons' => [
+                'data'         => $browse['data'],
+                'total'        => $browse['total'],
+                'current_page' => $browse['page'],
+                'last_page'    => $browse['lastPage'],
+                'links'        => $this->buildPageLinks($browse['page'], $browse['lastPage'], $search),
+            ],
+            'types'   => [],
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -57,19 +53,26 @@ class BattleController extends Controller
         MoveSelector $moveSelector,
     ): RedirectResponse {
         $request->validate([
-            'pokemon_id' => ['required', 'integer', 'exists:pokemons,id'],
+            'pokeapi_id' => ['required', 'integer', 'min:1', 'max:10000'],
         ]);
 
-        $pokemon = Pokemon::with('moves')->findOrFail($request->pokemon_id);
+        $pokeapiId = (int) $request->pokeapi_id;
 
-        if (!$moveSelector->canSelectFor($pokemon)) {
+        $player   = $this->pokeApi->fetchForBattle($pokeapiId);
+        $opponent = $this->pokeApi->randomOpponent($pokeapiId);
+
+        if (!$moveSelector->hasDamagingMove($player->moves)) {
             return back()->withErrors([
-                'pokemon_id' => 'Este Pokémon não tem golpes importados. Execute o importador primeiro.',
+                'pokeapi_id' => 'Este Pokémon não tem golpes de ataque disponíveis. Tente outro.',
             ]);
         }
 
-        $battle = $create->execute($request->user(), (int) $request->pokemon_id);
-        $battle = $simulate->execute($battle);
+        if (!$moveSelector->hasDamagingMove($opponent->moves)) {
+            $opponent = $this->pokeApi->randomOpponent($pokeapiId);
+        }
+
+        $battle = $create->execute($request->user(), $player, $opponent);
+        $battle = $simulate->execute($battle, $player, $opponent);
         $rewards->execute($battle);
 
         return redirect()->route('battle.show', $battle->id);
@@ -83,16 +86,10 @@ class BattleController extends Controller
             abort(403);
         }
 
-        $battle->load([
-            'playerPokemon.primaryType',
-            'playerPokemon.secondaryType',
-            'opponentPokemon.primaryType',
-            'opponentPokemon.secondaryType',
-            'turns',
-        ]);
+        $battle->load(['turns']);
 
-        $playerMaxHp   = $calc->maxHp($battle->playerPokemon->base_hp, $battle->player_level);
-        $opponentMaxHp = $calc->maxHp($battle->opponentPokemon->base_hp, $battle->opponent_level);
+        $player   = $battle->playerData();
+        $opponent = $battle->opponentData();
 
         return Inertia::render('Battle/Show', [
             'battle' => [
@@ -100,14 +97,14 @@ class BattleController extends Controller
                 'result'        => $battle->result,
                 'coins_awarded' => $battle->coins_awarded,
                 'player' => [
-                    'pokemon' => $this->serializePokemon($battle->playerPokemon),
+                    'pokemon' => $this->serializePokemon($player),
                     'level'   => $battle->player_level,
-                    'max_hp'  => $playerMaxHp,
+                    'max_hp'  => $calc->maxHp($player->baseHp, $battle->player_level),
                 ],
                 'opponent' => [
-                    'pokemon' => $this->serializePokemon($battle->opponentPokemon),
+                    'pokemon' => $this->serializePokemon($opponent),
                     'level'   => $battle->opponent_level,
-                    'max_hp'  => $opponentMaxHp,
+                    'max_hp'  => $calc->maxHp($opponent->baseHp, $battle->opponent_level),
                 ],
                 'turns' => $battle->turns->map(fn($t) => [
                     'turn_number'           => $t->turn_number,
@@ -128,24 +125,47 @@ class BattleController extends Controller
 
     // ─────────────────────────────────────────────────────────────
 
-    private function serializePokemon(Pokemon $p): array
+    private function serializePokemon(PokemonData $p): array
     {
         return [
-            'id'                   => $p->id,
-            'pokeapi_id'           => $p->pokeapi_id,
+            'id'                   => $p->pokeapiId,
+            'pokeapi_id'           => $p->pokeapiId,
             'name'                 => $p->name,
             'slug'                 => $p->slug,
             'sprite'               => $p->sprite,
-            'sprite_front'         => $p->sprite_front,
-            'base_hp'              => $p->base_hp,
-            'base_attack'          => $p->base_attack,
-            'base_defense'         => $p->base_defense,
-            'base_special_attack'  => $p->base_special_attack,
-            'base_special_defense' => $p->base_special_defense,
-            'base_speed'           => $p->base_speed,
-            'base_total'           => $p->base_total,
-            'primary_type'   => $p->primaryType  ? ['name' => $p->primaryType->name,  'slug' => $p->primaryType->slug]  : null,
-            'secondary_type' => $p->secondaryType ? ['name' => $p->secondaryType->name, 'slug' => $p->secondaryType->slug] : null,
+            'sprite_front'         => $p->sprite,
+            'base_hp'              => $p->baseHp,
+            'base_attack'          => $p->baseAttack,
+            'base_defense'         => $p->baseDefense,
+            'base_special_attack'  => $p->baseSpecialAttack,
+            'base_special_defense' => $p->baseSpecialDefense,
+            'base_speed'           => $p->baseSpeed,
+            'base_total'           => $p->baseTotal(),
+            'primary_type'   => ['name' => $p->primaryTypeName,  'slug' => $p->primaryTypeSlug],
+            'secondary_type' => $p->secondaryTypeSlug
+                ? ['name' => $p->secondaryTypeName, 'slug' => $p->secondaryTypeSlug]
+                : null,
         ];
+    }
+
+    private function buildPageLinks(int $current, int $lastPage, string $search): array
+    {
+        $url = function (int $p) use ($search): string {
+            $params = array_filter(['page' => $p > 1 ? $p : null, 'search' => $search ?: null]);
+            return route('battle.new', $params);
+        };
+
+        $links = [['url' => $current > 1 ? $url($current - 1) : null, 'label' => '&laquo; Anterior', 'active' => false]];
+
+        $from = max(1, $current - 3);
+        $to   = min($lastPage, $current + 3);
+
+        for ($i = $from; $i <= $to; $i++) {
+            $links[] = ['url' => $url($i), 'label' => (string) $i, 'active' => $i === $current];
+        }
+
+        $links[] = ['url' => $current < $lastPage ? $url($current + 1) : null, 'label' => 'Próximo &raquo;', 'active' => false];
+
+        return $links;
     }
 }

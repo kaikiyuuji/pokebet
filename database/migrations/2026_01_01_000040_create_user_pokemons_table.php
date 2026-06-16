@@ -1,25 +1,10 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
+// Shop feature pending — table will be added when implemented.
 return new class extends Migration
 {
-    public function up(): void
-    {
-        Schema::create('user_pokemons', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('pokemon_id')->constrained('pokemons')->cascadeOnDelete();
-            $table->timestamps();
-
-            $table->unique(['user_id', 'pokemon_id']);
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('user_pokemons');
-    }
+    public function up(): void {}
+    public function down(): void {}
 };

@@ -2,50 +2,55 @@
 
 namespace App\Game\Battle;
 
-use App\Models\Pokemon;
-use App\Models\PokemonType;
-use App\Models\TypeEffectiveness;
+use App\Game\Pokemon\PokemonData;
 
 class EffectivenessCalculator
 {
-    /** [attacking_type_id][defending_type_id] => float */
-    private array $chart = [];
+    // Gen 6+ type chart: [attacking slug][defending slug] => multiplier (only non-1.0 entries)
+    private const CHART = [
+        'normal'   => ['rock' => 0.5, 'ghost' => 0.0, 'steel' => 0.5],
+        'fire'     => ['fire' => 0.5, 'water' => 0.5, 'grass' => 2.0, 'ice' => 2.0, 'bug' => 2.0, 'rock' => 0.5, 'dragon' => 0.5, 'steel' => 2.0],
+        'water'    => ['fire' => 2.0, 'water' => 0.5, 'grass' => 0.5, 'ground' => 2.0, 'rock' => 2.0, 'dragon' => 0.5],
+        'electric' => ['water' => 2.0, 'electric' => 0.5, 'grass' => 0.5, 'ground' => 0.0, 'flying' => 2.0, 'dragon' => 0.5],
+        'grass'    => ['fire' => 0.5, 'water' => 2.0, 'grass' => 0.5, 'poison' => 0.5, 'ground' => 2.0, 'flying' => 0.5, 'bug' => 0.5, 'rock' => 2.0, 'dragon' => 0.5, 'steel' => 0.5],
+        'ice'      => ['fire' => 0.5, 'water' => 0.5, 'grass' => 2.0, 'ice' => 0.5, 'ground' => 2.0, 'flying' => 2.0, 'dragon' => 2.0, 'steel' => 0.5],
+        'fighting' => ['normal' => 2.0, 'ice' => 2.0, 'poison' => 0.5, 'flying' => 0.5, 'psychic' => 0.5, 'bug' => 0.5, 'rock' => 2.0, 'ghost' => 0.0, 'dark' => 2.0, 'steel' => 2.0, 'fairy' => 0.5],
+        'poison'   => ['grass' => 2.0, 'poison' => 0.5, 'ground' => 0.5, 'rock' => 0.5, 'ghost' => 0.5, 'steel' => 0.0, 'fairy' => 2.0],
+        'ground'   => ['fire' => 2.0, 'electric' => 2.0, 'grass' => 0.5, 'poison' => 2.0, 'flying' => 0.0, 'bug' => 0.5, 'rock' => 2.0, 'steel' => 2.0],
+        'flying'   => ['electric' => 0.5, 'grass' => 2.0, 'fighting' => 2.0, 'bug' => 2.0, 'rock' => 0.5, 'steel' => 0.5],
+        'psychic'  => ['fighting' => 2.0, 'poison' => 2.0, 'psychic' => 0.5, 'dark' => 0.0, 'steel' => 0.5],
+        'bug'      => ['fire' => 0.5, 'grass' => 2.0, 'fighting' => 0.5, 'poison' => 0.5, 'flying' => 0.5, 'psychic' => 2.0, 'ghost' => 0.5, 'dark' => 2.0, 'steel' => 0.5, 'fairy' => 0.5],
+        'rock'     => ['fire' => 2.0, 'ice' => 2.0, 'fighting' => 0.5, 'ground' => 0.5, 'flying' => 2.0, 'bug' => 2.0, 'steel' => 0.5],
+        'ghost'    => ['normal' => 0.0, 'psychic' => 2.0, 'ghost' => 2.0, 'dark' => 0.5],
+        'dragon'   => ['dragon' => 2.0, 'steel' => 0.5, 'fairy' => 0.0],
+        'dark'     => ['fighting' => 0.5, 'psychic' => 2.0, 'ghost' => 2.0, 'dark' => 0.5, 'fairy' => 0.5],
+        'steel'    => ['fire' => 0.5, 'water' => 0.5, 'electric' => 0.5, 'ice' => 2.0, 'rock' => 2.0, 'steel' => 0.5, 'fairy' => 2.0],
+        'fairy'    => ['fire' => 0.5, 'fighting' => 2.0, 'poison' => 0.5, 'dragon' => 2.0, 'dark' => 2.0, 'steel' => 0.5],
+    ];
 
-    public function loadChart(): void
+    /** No-op — chart is hardcoded, kept for call-site compatibility. */
+    public function loadChart(): void {}
+
+    public function calculate(string $moveTypeSlug, PokemonData $defender): float
     {
-        foreach (TypeEffectiveness::all() as $row) {
-            $this->chart[$row->attacking_type_id][$row->defending_type_id] = (float) $row->multiplier;
-        }
-    }
+        $row  = self::CHART[$moveTypeSlug] ?? [];
+        $mult = ($row[$defender->primaryTypeSlug] ?? 1.0);
 
-    /**
-     * Get the combined type multiplier for a move type attacking a defender.
-     * Multiplies effectiveness against each of the defender's types.
-     */
-    public function calculate(PokemonType $moveType, Pokemon $defender): float
-    {
-        $multiplier = 1.0;
-
-        $defenderTypes = array_filter([
-            $defender->primaryType,
-            $defender->secondaryType,
-        ]);
-
-        foreach ($defenderTypes as $defType) {
-            $multiplier *= $this->chart[$moveType->id][$defType->id] ?? 1.0;
+        if ($defender->secondaryTypeSlug !== null) {
+            $mult *= ($row[$defender->secondaryTypeSlug] ?? 1.0);
         }
 
-        return $multiplier;
+        return $mult;
     }
 
     public function label(float $multiplier): string
     {
         return match (true) {
-            $multiplier === 0.0  => 'immune',
-            $multiplier < 1.0   => 'not-very-effective',
-            $multiplier >= 4.0  => 'double-super-effective',
-            $multiplier > 1.0   => 'super-effective',
-            default              => 'normal',
+            $multiplier === 0.0 => 'immune',
+            $multiplier < 1.0  => 'not-very-effective',
+            $multiplier >= 4.0 => 'double-super-effective',
+            $multiplier > 1.0  => 'super-effective',
+            default            => 'normal',
         };
     }
 }

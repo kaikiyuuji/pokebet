@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Game\Battle\DamageCalculator;
+use App\Game\Pokemon\PokemonData;
 use App\Models\Battle;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,12 +15,6 @@ class BattleHistoryController extends Controller
     {
         $battles = $request->user()
             ->battles()
-            ->with([
-                'playerPokemon.primaryType',
-                'playerPokemon.secondaryType',
-                'opponentPokemon.primaryType',
-                'opponentPokemon.secondaryType',
-            ])
             ->latest()
             ->paginate(20);
 
@@ -31,23 +26,11 @@ class BattleHistoryController extends Controller
                 'created_at'    => $b->created_at->format('d/m/Y H:i'),
                 'player' => [
                     'level'   => $b->player_level,
-                    'pokemon' => [
-                        'name'           => $b->playerPokemon->name,
-                        'sprite'         => $b->playerPokemon->sprite,
-                        'primary_type'   => $b->playerPokemon->primaryType
-                            ? ['slug' => $b->playerPokemon->primaryType->slug, 'name' => $b->playerPokemon->primaryType->name]
-                            : null,
-                    ],
+                    'pokemon' => $this->miniSerialize($b->playerData()),
                 ],
                 'opponent' => [
                     'level'   => $b->opponent_level,
-                    'pokemon' => [
-                        'name'         => $b->opponentPokemon->name,
-                        'sprite'       => $b->opponentPokemon->sprite,
-                        'primary_type' => $b->opponentPokemon->primaryType
-                            ? ['slug' => $b->opponentPokemon->primaryType->slug, 'name' => $b->opponentPokemon->primaryType->name]
-                            : null,
-                    ],
+                    'pokemon' => $this->miniSerialize($b->opponentData()),
                 ],
             ]),
         ]);
@@ -59,16 +42,10 @@ class BattleHistoryController extends Controller
             abort(403);
         }
 
-        $battle->load([
-            'playerPokemon.primaryType',
-            'playerPokemon.secondaryType',
-            'opponentPokemon.primaryType',
-            'opponentPokemon.secondaryType',
-            'turns',
-        ]);
+        $battle->load(['turns']);
 
-        $playerMaxHp   = $calc->maxHp($battle->playerPokemon->base_hp, $battle->player_level);
-        $opponentMaxHp = $calc->maxHp($battle->opponentPokemon->base_hp, $battle->opponent_level);
+        $player   = $battle->playerData();
+        $opponent = $battle->opponentData();
 
         return Inertia::render('Battle/Log', [
             'battle' => [
@@ -79,13 +56,13 @@ class BattleHistoryController extends Controller
                 'random_seed'   => $battle->random_seed,
                 'player' => [
                     'level'   => $battle->player_level,
-                    'max_hp'  => $playerMaxHp,
-                    'pokemon' => $this->serializePokemon($battle->playerPokemon),
+                    'max_hp'  => $calc->maxHp($player->baseHp, $battle->player_level),
+                    'pokemon' => $this->fullSerialize($player),
                 ],
                 'opponent' => [
                     'level'   => $battle->opponent_level,
-                    'max_hp'  => $opponentMaxHp,
-                    'pokemon' => $this->serializePokemon($battle->opponentPokemon),
+                    'max_hp'  => $calc->maxHp($opponent->baseHp, $battle->opponent_level),
+                    'pokemon' => $this->fullSerialize($opponent),
                 ],
                 'turns' => $battle->turns->map(fn($t) => [
                     'turn_number'           => $t->turn_number,
@@ -105,25 +82,32 @@ class BattleHistoryController extends Controller
         ]);
     }
 
-    private function serializePokemon(\App\Models\Pokemon $p): array
+    private function miniSerialize(PokemonData $p): array
     {
         return [
-            'id'                   => $p->id,
-            'pokeapi_id'           => $p->pokeapi_id,
+            'name'         => $p->name,
+            'sprite'       => $p->sprite,
+            'primary_type' => ['slug' => $p->primaryTypeSlug, 'name' => $p->primaryTypeName],
+        ];
+    }
+
+    private function fullSerialize(PokemonData $p): array
+    {
+        return [
+            'id'                   => $p->pokeapiId,
+            'pokeapi_id'           => $p->pokeapiId,
             'name'                 => $p->name,
             'sprite'               => $p->sprite,
-            'base_hp'              => $p->base_hp,
-            'base_attack'          => $p->base_attack,
-            'base_defense'         => $p->base_defense,
-            'base_special_attack'  => $p->base_special_attack,
-            'base_special_defense' => $p->base_special_defense,
-            'base_speed'           => $p->base_speed,
-            'base_total'           => $p->base_total,
-            'primary_type'   => $p->primaryType
-                ? ['name' => $p->primaryType->name,  'slug' => $p->primaryType->slug]
-                : null,
-            'secondary_type' => $p->secondaryType
-                ? ['name' => $p->secondaryType->name, 'slug' => $p->secondaryType->slug]
+            'base_hp'              => $p->baseHp,
+            'base_attack'          => $p->baseAttack,
+            'base_defense'         => $p->baseDefense,
+            'base_special_attack'  => $p->baseSpecialAttack,
+            'base_special_defense' => $p->baseSpecialDefense,
+            'base_speed'           => $p->baseSpeed,
+            'base_total'           => $p->baseTotal(),
+            'primary_type'   => ['name' => $p->primaryTypeName, 'slug' => $p->primaryTypeSlug],
+            'secondary_type' => $p->secondaryTypeSlug
+                ? ['name' => $p->secondaryTypeName, 'slug' => $p->secondaryTypeSlug]
                 : null,
         ];
     }

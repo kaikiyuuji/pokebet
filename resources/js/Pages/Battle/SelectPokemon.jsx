@@ -169,7 +169,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
     const handleStart = () => {
         if (!selected || processing) return;
         setProcessing(true);
-        router.post(route('battle.store'), { pokemon_id: selected.id }, {
+        router.post(route('battle.store'), { pokeapi_id: selected.pokeapi_id }, {
             onFinish: () => setProcessing(false),
         });
     };
@@ -229,12 +229,10 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                     {isEmpty && (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
                             <span className="text-6xl mb-4">🔍</span>
-                            {pokemons.total === 0 && !filters.search && !filters.type ? (
+                            {pokemons.total === 0 && !filters.search ? (
                                 <>
-                                    <p className="text-lg font-semibold text-gray-600">Nenhum Pokémon importado ainda</p>
-                                    <p className="text-sm text-gray-400 mt-1">
-                                        Execute <code className="bg-gray-100 px-1 rounded">php artisan pokebet:import</code> para importar a Pokédex
-                                    </p>
+                                    <p className="text-lg font-semibold text-gray-600">Não foi possível carregar os Pokémon</p>
+                                    <p className="text-sm text-gray-400 mt-1">Verifique sua conexão com a internet e tente novamente.</p>
                                 </>
                             ) : (
                                 <>

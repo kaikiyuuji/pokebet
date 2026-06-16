@@ -2,8 +2,8 @@
 
 namespace App\Game\Battle;
 
-use App\Models\Move;
-use App\Models\Pokemon;
+use App\Game\Pokemon\MoveData;
+use App\Game\Pokemon\PokemonData;
 
 class DamageCalculator
 {
@@ -12,8 +12,7 @@ class DamageCalculator
     ) {}
 
     /**
-     * Calculate max HP using the Gen III+ formula (no IVs/EVs).
-     * HP = floor((2 * base * level) / 100) + level + 10
+     * HP = floor((2 * base * level) / 100) + level + 10  (Gen III+ formula, no IVs/EVs)
      */
     public function maxHp(int $baseHp, int $level): int
     {
@@ -22,45 +21,35 @@ class DamageCalculator
 
     /**
      * Returns [damage, isCritical, typeMultiplier].
-     * Uses seeded mt_rand — caller must mt_srand() before the battle.
-     *
-     * Formula: floor(((2*L/5+2) * Power * Atk/Def) / 50 + 2) * modifiers
+     * Caller must mt_srand() before the battle loop.
      */
-    public function calculate(Pokemon $attacker, int $level, Move $move, Pokemon $defender): array
+    public function calculate(PokemonData $attacker, int $level, MoveData $move, PokemonData $defender): array
     {
         if (!$move->isDamaging()) {
             return [0, false, 1.0];
         }
 
-        $power = $move->power;
+        $atkStat = $move->damageClass === 'special'
+            ? $attacker->baseSpecialAttack
+            : $attacker->baseAttack;
 
-        $atkStat = $move->damage_class === 'special'
-            ? $attacker->base_special_attack
-            : $attacker->base_attack;
+        $defStat = $move->damageClass === 'special'
+            ? $defender->baseSpecialDefense
+            : $defender->baseDefense;
 
-        $defStat = $move->damage_class === 'special'
-            ? $defender->base_special_defense
-            : $defender->base_defense;
+        $base = (int) floor(((2 * $level / 5 + 2) * $move->power * ($atkStat / max(1, $defStat))) / 50 + 2);
 
-        // Base damage
-        $base = (int) floor(((2 * $level / 5 + 2) * $power * ($atkStat / max(1, $defStat))) / 50 + 2);
+        $typeMultiplier = $this->effectiveness->calculate($move->typeSlug, $defender);
 
-        // Type effectiveness
-        $typeMultiplier = $this->effectiveness->calculate($move->type, $defender);
+        $stab = ($move->typeSlug === $attacker->primaryTypeSlug
+            || $move->typeSlug === $attacker->secondaryTypeSlug)
+            ? 1.5 : 1.0;
 
-        // STAB (Same Type Attack Bonus)
-        $stab = ($move->type_id === $attacker->primary_type_id
-            || $move->type_id === $attacker->secondary_type_id)
-            ? 1.5
-            : 1.0;
+        $critChance    = (float) config('battle.critical_chance', 0.0625);
+        $critMult      = (float) config('battle.critical_multiplier', 1.5);
+        $isCritical    = (mt_rand() / mt_getrandmax()) < $critChance;
+        $crit          = $isCritical ? $critMult : 1.0;
 
-        // Critical hit (uses seeded mt_rand)
-        $critChance      = (float) config('battle.critical_chance', 0.0625);
-        $critMultiplier  = (float) config('battle.critical_multiplier', 1.5);
-        $isCritical      = (mt_rand() / mt_getrandmax()) < $critChance;
-        $crit            = $isCritical ? $critMultiplier : 1.0;
-
-        // Random damage factor
         $randMin = (float) config('battle.random_damage_min', 0.85);
         $randMax = (float) config('battle.random_damage_max', 1.00);
         $random  = $randMin + (mt_rand() / mt_getrandmax()) * ($randMax - $randMin);
