@@ -1,223 +1,385 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
 import { Head, Link } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-const TURN_INTERVAL_MS   = 1600; // time per turn
-const ANIM_ATTACK_MS     = 400;  // when attacker lunges
-const ANIM_HIT_MS        = 700;  // when defender flashes
-const HP_TRANSITION_MS   = 900;  // HP bar transition duration
+// ── Timing constants ───────────────────────────────────────────────────────────
+const TURN_MS    = 1500;
+const ATTACK_MS  = 350;
+const HIT_MS     = 650;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function hpColor(pct) {
-    if (pct > 0.5) return 'bg-green-500';
+    if (pct > 0.5) return 'bg-green-400';
     if (pct > 0.2) return 'bg-yellow-400';
     return 'bg-red-500';
 }
 
-function effectivenessText(eff) {
+function effectivenessLabel(eff) {
     switch (eff) {
         case 'super-effective':
-        case 'double-super-effective': return '¡É super efetivo!';
-        case 'not-very-effective':      return 'Não é muito efetivo…';
-        case 'immune':                  return 'Não afetou!';
+        case 'double-super-effective': return { text: 'Super efetivo!', cls: 'text-pink-400' };
+        case 'not-very-effective':      return { text: 'Fraco…',         cls: 'text-blue-400' };
+        case 'immune':                  return { text: 'Sem efeito!',    cls: 'text-gray-400' };
         default:                        return null;
     }
 }
 
 // ── HP Bar ────────────────────────────────────────────────────────────────────
-function HpBar({ current, max, label, level, side }) {
-    const pct = max > 0 ? current / max : 0;
-    const color = hpColor(pct);
+function HpBar({ current, max, name, level, side }) {
+    const pct = max > 0 ? Math.max(0, current) / max : 0;
     const isRight = side === 'opponent';
 
     return (
-        <div className={`flex flex-col gap-1 ${isRight ? 'items-end' : 'items-start'}`}>
-            <div className={`flex items-baseline gap-2 ${isRight ? 'flex-row-reverse' : ''}`}>
-                <span className="font-bold text-gray-800 text-sm">{label}</span>
-                <span className="text-xs text-gray-500">Lv.{level}</span>
+        <div className={`flex flex-col gap-0.5 ${isRight ? 'items-end' : 'items-start'}`}>
+            <div className={`flex items-baseline gap-1.5 ${isRight ? 'flex-row-reverse' : ''}`}>
+                <span className="text-sm font-bold text-white drop-shadow">{name}</span>
+                <span className="text-xs text-slate-400">Lv.{level}</span>
             </div>
-            <div className="w-40 h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+            <div className="w-36 h-2.5 rounded-full bg-slate-700 overflow-hidden shadow-inner">
                 <div
-                    className={`h-full rounded-full ${color}`}
-                    style={{
-                        width: `${Math.max(0, pct * 100).toFixed(1)}%`,
-                        transition: `width ${HP_TRANSITION_MS}ms ease-out`,
-                    }}
+                    className={`h-full rounded-full ${hpColor(pct)}`}
+                    style={{ width: `${(pct * 100).toFixed(1)}%`, transition: 'width 900ms ease-out' }}
                 />
             </div>
-            <span className="text-xs text-gray-500 font-mono">
+            <span className="text-xs text-slate-500 font-mono">
                 {Math.max(0, current)}/{max}
             </span>
         </div>
     );
 }
 
-// ── Pokémon Sprite ────────────────────────────────────────────────────────────
+// ── Pokémon Sprite ─────────────────────────────────────────────────────────────
 function PokemonSprite({ pokemon, side, animClass, fainted }) {
-    const src = pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png';
-
-    // Player side: mirror the sprite (like classic Pokémon games)
-    const baseTransform = side === 'player' ? 'scaleX(-1)' : 'scaleX(1)';
+    const src = pokemon.sprite ?? '/images/pokemon-placeholder.png';
+    const mirrored = side === 'player' ? 'scaleX(-1)' : 'scaleX(1)';
 
     return (
-        <div className="flex items-end justify-center" style={{ minHeight: '10rem' }}>
+        <div className="flex items-end justify-center" style={{ minHeight: '9rem' }}>
             <img
-                key={animClass} // force re-mount to restart CSS animation
+                key={animClass}
                 src={src}
                 alt={pokemon.name}
-                className={`select-none object-contain drop-shadow-lg ${animClass} ${fainted ? 'battle-faint' : ''}`}
-                style={{
-                    width: '160px',
-                    height: '160px',
-                    transform: baseTransform,
-                    imageRendering: 'pixelated',
-                }}
-                onError={(e) => { e.target.src = '/images/pokemon-placeholder.png'; }}
+                loading="eager"
+                className={`object-contain drop-shadow-lg select-none ${animClass} ${fainted ? 'battle-faint' : ''}`}
+                style={{ width: 148, height: 148, transform: mirrored, imageRendering: 'pixelated' }}
+                onError={(e) => { e.currentTarget.src = '/images/pokemon-placeholder.png'; }}
             />
         </div>
     );
 }
 
-// ── Turn Log ─────────────────────────────────────────────────────────────────
-function TurnLog({ turns, currentIndex }) {
-    const ref = useRef(null);
-    const visible = turns.slice(0, currentIndex).slice(-5).reverse();
-
-    useEffect(() => {
-        ref.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [currentIndex]);
+// ── Live log (during animation) ────────────────────────────────────────────────
+function LiveLog({ turns, currentIdx }) {
+    const visible = [...turns].slice(0, currentIdx).reverse().slice(0, 4);
 
     return (
-        <div ref={ref} className="bg-gray-900 text-green-400 font-mono text-xs rounded-xl p-3 h-28 overflow-hidden flex flex-col gap-1">
-            {visible.length === 0 && (
-                <span className="text-gray-500">Aguardando batalha…</span>
-            )}
-            {visible.map((t, i) => (
-                <LogLine key={currentIndex - i} turn={t} dimmed={i > 0} />
-            ))}
+        <div className="bg-slate-900 rounded-xl p-3 h-24 font-mono text-xs overflow-hidden flex flex-col gap-1">
+            {visible.length === 0 && <span className="text-slate-600">Aguardando…</span>}
+            {visible.map((t, i) => {
+                const eff = effectivenessLabel(t.effectiveness);
+                return (
+                    <div key={currentIdx - i} className={i > 0 ? 'opacity-40' : ''}>
+                        <span className="text-slate-400">
+                            {t.attacker === 'player' ? '🗡️' : '👾'}
+                        </span>{' '}
+                        <span className="text-white">{t.move_name}</span>
+                        {t.damage_dealt > 0 && <span className="text-green-400"> −{t.damage_dealt}</span>}
+                        {t.is_critical && <span className="text-yellow-300"> ★</span>}
+                        {eff && <span className={eff.cls}> {eff.text}</span>}
+                    </div>
+                );
+            })}
         </div>
     );
 }
 
-function LogLine({ turn, dimmed }) {
-    const attacker = turn.attacker === 'player' ? '🗡️ Seu' : '👾 Oponente';
-    const effText  = effectivenessText(turn.effectiveness);
-
+// ── Arena ──────────────────────────────────────────────────────────────────────
+function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAnim, playerFainted, opponentFainted, phase, turnIdx, totalTurns }) {
     return (
-        <div className={`transition-opacity ${dimmed ? 'opacity-40' : 'opacity-100'}`}>
-            <span className="text-gray-400">{attacker} </span>
-            <span className="text-white font-semibold">usou {turn.move_name}</span>
-            {turn.damage_dealt > 0 && (
-                <span className="text-green-400"> → {turn.damage_dealt} dano</span>
-            )}
-            {turn.is_critical && (
-                <span className="text-yellow-400"> ★ Crítico!</span>
-            )}
-            {effText && (
-                <span className="text-pink-400"> {effText}</span>
-            )}
-        </div>
-    );
-}
+        <div className="rounded-2xl bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-5 shadow-2xl">
+            {/* Opponent row */}
+            <div className="flex justify-between items-start mb-1">
+                <HpBar current={opponentHp} max={opponent.max_hp} name={opponent.pokemon.name} level={opponent.level} side="opponent" />
+                <span className="text-xs text-slate-600 font-mono">{formatPokedexNumber(opponent.pokemon.pokeapi_id)}</span>
+            </div>
 
-// ── Result Overlay ────────────────────────────────────────────────────────────
-function ResultOverlay({ result, coins, onReplay }) {
-    const config = {
-        win:  { emoji: '🏆', title: 'Vitória!',  bg: 'from-yellow-400 to-amber-500', text: 'text-amber-900' },
-        loss: { emoji: '💀', title: 'Derrota…',  bg: 'from-gray-700 to-gray-900',   text: 'text-gray-100' },
-        draw: { emoji: '🤝', title: 'Empate!',   bg: 'from-blue-500 to-indigo-600', text: 'text-white' },
-    }[result] ?? { emoji: '?', title: result, bg: 'from-gray-500 to-gray-700', text: 'text-white' };
+            {/* Sprites */}
+            <div className="flex items-end justify-between gap-4 py-3 px-2">
+                <PokemonSprite pokemon={player.pokemon} side="player" animClass={playerAnim} fainted={playerFainted} />
 
-    return (
-        <div className={`absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br ${config.bg} rounded-2xl z-10`}>
-            <div className="text-6xl mb-2">{config.emoji}</div>
-            <h2 className={`text-3xl font-black ${config.text}`}>{config.title}</h2>
-            <p className={`mt-1 text-sm ${config.text} opacity-80`}>
-                +{coins} <span className="opacity-70">moedas ganhas</span>
-            </p>
-            <div className="mt-6 flex gap-3">
-                <Link
-                    href={route('battle.new')}
-                    className="rounded-lg bg-white/20 border border-white/30 px-5 py-2 text-sm font-semibold text-white hover:bg-white/30 transition-colors"
-                >
-                    Nova Batalha
-                </Link>
-                <button
-                    onClick={onReplay}
-                    className="rounded-lg bg-white/20 border border-white/30 px-5 py-2 text-sm font-semibold text-white hover:bg-white/30 transition-colors"
-                >
-                    ▶ Rever
-                </button>
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                    {phase === 'ready' && <span className="text-xl font-black text-slate-600">VS</span>}
+                    {phase === 'playing' && (
+                        <span className="text-xs text-slate-500 font-mono tabular-nums">
+                            {turnIdx}/{totalTurns}
+                        </span>
+                    )}
+                    {phase === 'finished' && <span className="text-lg text-slate-600">·</span>}
+                </div>
+
+                <PokemonSprite pokemon={opponent.pokemon} side="opponent" animClass={opponentAnim} fainted={opponentFainted} />
+            </div>
+
+            {/* Player row */}
+            <div className="flex justify-end mt-1">
+                <HpBar current={playerHp} max={player.max_hp} name={player.pokemon.name} level={player.level} side="player" />
             </div>
         </div>
     );
 }
 
-// ── Main Battle Arena ─────────────────────────────────────────────────────────
+// ── Result panel ───────────────────────────────────────────────────────────────
+function ResultPanel({ battle, stats }) {
+    const [logOpen, setLogOpen] = useState(false);
+    const { result, coins_awarded, player, opponent, turns } = battle;
+
+    const cfg = {
+        win:  { emoji: '🏆', label: 'Vitória!',  banner: 'from-yellow-400 to-amber-500',  text: 'text-amber-900' },
+        loss: { emoji: '💀', label: 'Derrota…',  banner: 'from-gray-800 to-slate-900',    text: 'text-slate-200' },
+        draw: { emoji: '🤝', label: 'Empate!',   banner: 'from-indigo-600 to-purple-700', text: 'text-white' },
+    }[result] ?? { emoji: '?', label: result, banner: 'from-gray-600 to-gray-700', text: 'text-white' };
+
+    return (
+        <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            {/* Banner */}
+            <div className={`bg-gradient-to-r ${cfg.banner} px-6 py-5 flex items-center justify-between`}>
+                <div className="flex items-center gap-3">
+                    <span className="text-4xl">{cfg.emoji}</span>
+                    <h2 className={`text-2xl font-black ${cfg.text}`}>{cfg.label}</h2>
+                </div>
+                <div className={`flex flex-col items-end ${cfg.text}`}>
+                    <span className="text-xs opacity-70">moedas ganhas</span>
+                    <span className="text-2xl font-black">🪙 +{coins_awarded}</span>
+                </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 divide-x divide-gray-100 text-center py-4">
+                <StatCell label="Turnos" value={stats.totalTurns} />
+                <StatCell label="Dano causado" value={stats.playerDamageDealt} highlight="text-green-600" />
+                <StatCell label="Dano recebido" value={stats.opponentDamageDealt} highlight="text-red-500" />
+            </div>
+
+            {/* Best moves */}
+            {(stats.playerBestMove || stats.opponentBestMove) && (
+                <div className="grid grid-cols-2 gap-px bg-gray-100">
+                    <BestMoveCell move={stats.playerBestMove} label="Seu melhor golpe" side="player" />
+                    <BestMoveCell move={stats.opponentBestMove} label="Golpe inimigo" side="opponent" />
+                </div>
+            )}
+
+            {/* Battle log toggle */}
+            <div className="border-t border-gray-100">
+                <button
+                    onClick={() => setLogOpen(v => !v)}
+                    className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                    <span>📋 Log da batalha <span className="font-normal text-gray-400">({turns.length} turnos)</span></span>
+                    <span className="text-gray-400">{logOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {logOpen && <BattleLogTable turns={turns} player={player} opponent={opponent} />}
+            </div>
+
+            {/* Actions */}
+            <div className="border-t border-gray-100 px-5 py-4 flex flex-wrap gap-3 justify-center">
+                <Link
+                    href={route('battle.new')}
+                    className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow transition-colors"
+                >
+                    ⚔️ Nova Batalha
+                </Link>
+                <Link
+                    href={route('battles.log', battle.id)}
+                    className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                    📋 Log completo
+                </Link>
+                <Link
+                    href={route('battles.index')}
+                    className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                    📜 Histórico
+                </Link>
+            </div>
+        </div>
+    );
+}
+
+function StatCell({ label, value, highlight = 'text-gray-800' }) {
+    return (
+        <div className="py-2 px-3">
+            <div className={`text-xl font-bold ${highlight}`}>{value}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+        </div>
+    );
+}
+
+function BestMoveCell({ move, label, side }) {
+    if (!move) return <div className="bg-white p-3" />;
+    const typeStyle = move.move_type ? getTypeStyle(move.move_type) : null;
+
+    return (
+        <div className="bg-white p-3">
+            <p className="text-xs text-gray-400 mb-1">{label}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+                {typeStyle && (
+                    <span className={`${typeStyle.bg} ${typeStyle.text} text-[10px] px-1.5 py-0.5 rounded font-bold uppercase`}>
+                        {move.move_type}
+                    </span>
+                )}
+                <span className="text-sm font-semibold text-gray-800">{move.move_name}</span>
+                <span className="text-sm text-gray-500">−{move.damage_dealt}</span>
+            </div>
+        </div>
+    );
+}
+
+// ── Battle Log Table ──────────────────────────────────────────────────────────
+function BattleLogTable({ turns, player, opponent }) {
+    return (
+        <div className="overflow-x-auto max-h-72 overflow-y-auto">
+            <table className="w-full text-xs">
+                <thead className="bg-gray-50 sticky top-0">
+                    <tr className="text-left text-gray-500 border-b border-gray-100">
+                        <th className="px-3 py-2 font-medium">#</th>
+                        <th className="px-3 py-2 font-medium">Atacante</th>
+                        <th className="px-3 py-2 font-medium">Golpe</th>
+                        <th className="px-3 py-2 font-medium text-right">Dano</th>
+                        <th className="px-3 py-2 font-medium">Efetividade</th>
+                        <th className="px-3 py-2 font-medium text-right">HP 🗡️</th>
+                        <th className="px-3 py-2 font-medium text-right">HP 👾</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {turns.map((t) => {
+                        const eff = effectivenessLabel(t.effectiveness);
+                        const isPlayer = t.attacker === 'player';
+                        const typeStyle = t.move_type ? getTypeStyle(t.move_type) : null;
+
+                        return (
+                            <tr
+                                key={t.turn_number}
+                                className={`border-b border-gray-50 transition-colors ${
+                                    isPlayer ? 'hover:bg-indigo-50' : 'hover:bg-red-50'
+                                }`}
+                            >
+                                <td className="px-3 py-1.5 text-gray-400 font-mono">{t.turn_number}</td>
+                                <td className="px-3 py-1.5">
+                                    <span className={`inline-flex items-center gap-1 font-medium ${
+                                        isPlayer ? 'text-indigo-600' : 'text-red-500'
+                                    }`}>
+                                        {isPlayer ? '🗡️' : '👾'}
+                                        <span className="hidden sm:inline">
+                                            {isPlayer ? player.pokemon.name : opponent.pokemon.name}
+                                        </span>
+                                    </span>
+                                </td>
+                                <td className="px-3 py-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                        {typeStyle && (
+                                            <span className={`${typeStyle.bg} ${typeStyle.text} text-[9px] px-1 py-0.5 rounded font-bold uppercase shrink-0`}>
+                                                {t.move_type}
+                                            </span>
+                                        )}
+                                        <span className="text-gray-800">
+                                            {t.move_name}
+                                            {t.stab && <span className="text-xs text-slate-400 ml-1">STAB</span>}
+                                            {t.is_critical && <span className="text-yellow-500 ml-1">★</span>}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-3 py-1.5 text-right font-mono font-semibold text-gray-700">
+                                    {t.damage_dealt > 0 ? `−${t.damage_dealt}` : <span className="text-gray-300">—</span>}
+                                </td>
+                                <td className="px-3 py-1.5">
+                                    {eff
+                                        ? <span className={`font-medium ${eff.cls}`}>{eff.text}</span>
+                                        : <span className="text-gray-300">—</span>
+                                    }
+                                </td>
+                                <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.player_hp_remaining <= 0 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>
+                                    {Math.max(0, t.player_hp_remaining)}
+                                </td>
+                                <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.opponent_hp_remaining <= 0 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>
+                                    {Math.max(0, t.opponent_hp_remaining)}
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
 export default function Show({ battle }) {
     const { player, opponent, turns, result, coins_awarded } = battle;
 
-    const [phase, setPhase] = useState('ready'); // ready | playing | finished
-    const [turnIdx, setTurnIdx] = useState(0);
-
-    // Displayed HP (drives the HP bars)
-    const [playerHp, setPlayerHp]     = useState(player.max_hp);
-    const [opponentHp, setOpponentHp] = useState(opponent.max_hp);
-
-    // Animation classes (reset each turn to restart CSS animations)
-    const [playerAnim, setPlayerAnim]     = useState('');
+    const [phase, setPhase]             = useState('ready');
+    const [turnIdx, setTurnIdx]         = useState(0);
+    const [playerHp, setPlayerHp]       = useState(player.max_hp);
+    const [opponentHp, setOpponentHp]   = useState(opponent.max_hp);
+    const [playerAnim, setPlayerAnim]   = useState('');
     const [opponentAnim, setOpponentAnim] = useState('');
-
-    // Fainted state
     const [playerFainted, setPlayerFainted]     = useState(false);
     const [opponentFainted, setOpponentFainted] = useState(false);
 
-    // Timer ref for cleanup
     const timers = useRef([]);
-    const clearAllTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
     const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.current.push(t); };
+    const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = []; };
+    useEffect(() => () => clearAll(), []);
 
-    useEffect(() => () => clearAllTimers(), []);
+    // Battle stats (computed once from turns)
+    const stats = useMemo(() => {
+        const p = turns.filter(t => t.attacker === 'player');
+        const o = turns.filter(t => t.attacker === 'opponent');
+        const best = (arr) => arr.reduce((b, t) => t.damage_dealt > (b?.damage_dealt ?? 0) ? t : b, null);
+        return {
+            totalTurns:          turns.length,
+            playerDamageDealt:   p.reduce((s, t) => s + t.damage_dealt, 0),
+            opponentDamageDealt: o.reduce((s, t) => s + t.damage_dealt, 0),
+            playerBestMove:      best(p),
+            opponentBestMove:    best(o),
+        };
+    }, [turns]);
 
-    // Advance one turn per TURN_INTERVAL_MS when playing
     useEffect(() => {
         if (phase !== 'playing') return;
+
         if (turnIdx >= turns.length) {
-            later(() => setPhase('finished'), 600);
+            later(() => setPhase('finished'), 500);
             return;
         }
 
-        const turn = turns[turnIdx];
-        const attackerIsPlayer = turn.attacker === 'player';
+        const t = turns[turnIdx];
+        const attackerIsPlayer = t.attacker === 'player';
 
-        // 1. Show attacker lunging
         later(() => {
             setPlayerAnim(attackerIsPlayer ? 'battle-lunge-right' : '');
             setOpponentAnim(!attackerIsPlayer ? 'battle-lunge-left' : '');
-        }, ANIM_ATTACK_MS);
+        }, ATTACK_MS);
 
-        // 2. Show defender being hit + update HP
         later(() => {
-            setPlayerAnim(!attackerIsPlayer && turn.damage_dealt > 0 ? 'battle-hit' : '');
-            setOpponentAnim(attackerIsPlayer && turn.damage_dealt > 0 ? 'battle-hit' : '');
+            if (attackerIsPlayer && t.damage_dealt > 0) setOpponentAnim('battle-hit');
+            if (!attackerIsPlayer && t.damage_dealt > 0) setPlayerAnim('battle-hit');
+            setPlayerHp(t.player_hp_remaining);
+            setOpponentHp(t.opponent_hp_remaining);
+            if (t.player_hp_remaining <= 0)   setPlayerFainted(true);
+            if (t.opponent_hp_remaining <= 0) setOpponentFainted(true);
+        }, HIT_MS);
 
-            setPlayerHp(turn.player_hp_remaining);
-            setOpponentHp(turn.opponent_hp_remaining);
-
-            if (turn.player_hp_remaining <= 0) setPlayerFainted(true);
-            if (turn.opponent_hp_remaining <= 0) setOpponentFainted(true);
-        }, ANIM_HIT_MS);
-
-        // 3. Advance to next turn
         later(() => {
-            setTurnIdx((i) => i + 1);
-        }, TURN_INTERVAL_MS);
+            setPlayerAnim('');
+            setOpponentAnim('');
+            setTurnIdx(i => i + 1);
+        }, TURN_MS);
     }, [phase, turnIdx]);
 
-    const startBattle = () => {
-        clearAllTimers();
+    const startReplay = () => {
+        clearAll();
         setPhase('playing');
         setTurnIdx(0);
         setPlayerHp(player.max_hp);
@@ -228,7 +390,18 @@ export default function Show({ battle }) {
         setOpponentAnim('');
     };
 
-    const replay = () => startBattle();
+    const skipToEnd = () => {
+        clearAll();
+        const last = turns[turns.length - 1];
+        if (last) {
+            setPlayerHp(last.player_hp_remaining);
+            setOpponentHp(last.opponent_hp_remaining);
+            setPlayerFainted(last.player_hp_remaining <= 0);
+            setOpponentFainted(last.opponent_hp_remaining <= 0);
+        }
+        setTurnIdx(turns.length);
+        setPhase('finished');
+    };
 
     const finished = phase === 'finished';
 
@@ -236,11 +409,12 @@ export default function Show({ battle }) {
         <AuthenticatedLayout
             header={
                 <div className="flex items-center gap-3">
-                    <Link href={route('battle.new')} className="text-sm text-gray-400 hover:text-gray-600">
-                        ← Batalha
+                    <Link href={route('battles.index')} className="text-sm text-gray-400 hover:text-gray-600">
+                        ← Histórico
                     </Link>
                     <span className="text-gray-300">/</span>
                     <h2 className="text-xl font-semibold text-gray-800">Batalha #{battle.id}</h2>
+                    {result && <ResultBadge result={result} />}
                 </div>
             }
         >
@@ -248,134 +422,67 @@ export default function Show({ battle }) {
 
             <div className="py-6">
                 <div className="mx-auto max-w-lg px-4">
+
                     {/* Arena */}
-                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900 shadow-2xl p-5">
+                    <Arena
+                        player={player} opponent={opponent}
+                        playerHp={playerHp} opponentHp={opponentHp}
+                        playerAnim={playerAnim} opponentAnim={opponentAnim}
+                        playerFainted={playerFainted} opponentFainted={opponentFainted}
+                        phase={phase} turnIdx={turnIdx} totalTurns={turns.length}
+                    />
 
-                        {/* Opponent area (top) */}
-                        <div className="flex justify-between items-start mb-2">
-                            <HpBar
-                                current={opponentHp}
-                                max={opponent.max_hp}
-                                label={opponent.pokemon.name}
-                                level={opponent.level}
-                                side="opponent"
-                            />
-                            <span className="text-xs text-slate-500 font-mono">
-                                {formatPokedexNumber(opponent.pokemon.pokeapi_id)}
-                            </span>
+                    {/* Live log */}
+                    {!finished && (
+                        <div className="mt-3">
+                            <LiveLog turns={turns} currentIdx={turnIdx} />
                         </div>
-
-                        {/* Sprites row */}
-                        <div className="flex justify-between items-end px-2 py-4">
-                            {/* Player (left, mirrored) */}
-                            <PokemonSprite
-                                pokemon={player.pokemon}
-                                side="player"
-                                animClass={playerAnim}
-                                fainted={playerFainted}
-                            />
-
-                            {/* VS or progress */}
-                            <div className="flex flex-col items-center gap-1">
-                                {phase === 'ready' && (
-                                    <span className="text-2xl font-black text-slate-500">VS</span>
-                                )}
-                                {phase === 'playing' && (
-                                    <span className="text-xs text-slate-400 font-mono">
-                                        {turnIdx}/{turns.length}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Opponent (right) */}
-                            <PokemonSprite
-                                pokemon={opponent.pokemon}
-                                side="opponent"
-                                animClass={opponentAnim}
-                                fainted={opponentFainted}
-                            />
-                        </div>
-
-                        {/* Player HP (bottom) */}
-                        <div className="flex justify-end mt-2">
-                            <HpBar
-                                current={playerHp}
-                                max={player.max_hp}
-                                label={player.pokemon.name}
-                                level={player.level}
-                                side="player"
-                            />
-                        </div>
-
-                        {/* Result overlay */}
-                        {finished && (
-                            <ResultOverlay
-                                result={result}
-                                coins={coins_awarded}
-                                onReplay={replay}
-                            />
-                        )}
-                    </div>
-
-                    {/* Turn log */}
-                    <div className="mt-3">
-                        <TurnLog turns={turns} currentIndex={turnIdx} />
-                    </div>
+                    )}
 
                     {/* Controls */}
                     <div className="mt-3 flex justify-center gap-3">
                         {phase === 'ready' && (
                             <button
-                                onClick={startBattle}
+                                onClick={startReplay}
                                 className="rounded-xl bg-indigo-600 px-8 py-3 text-base font-bold text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95"
                             >
                                 ▶ Ver Batalha
                             </button>
                         )}
                         {phase === 'playing' && (
-                            <button
-                                onClick={() => { clearAllTimers(); setPhase('finished'); }}
-                                className="rounded-xl border border-slate-200 px-5 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
-                            >
-                                ⏩ Pular
-                            </button>
+                            <>
+                                <button
+                                    onClick={skipToEnd}
+                                    className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                                >
+                                    ⏩ Pular
+                                </button>
+                            </>
                         )}
-                        {phase !== 'ready' && (
-                            <Link
-                                href={route('battle.new')}
-                                className="rounded-xl border border-slate-200 px-5 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                        {finished && (
+                            <button
+                                onClick={startReplay}
+                                className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shadow-sm"
                             >
-                                ← Nova Batalha
-                            </Link>
+                                ▶ Rever animação
+                            </button>
                         )}
                     </div>
 
-                    {/* Type badges */}
-                    <div className="mt-5 flex justify-between text-xs text-slate-500">
-                        <MatchupTypes pokemon={player.pokemon} label="Seu time" />
-                        <MatchupTypes pokemon={opponent.pokemon} label="Inimigo" align="right" />
-                    </div>
+                    {/* Result panel — only when finished */}
+                    {finished && <ResultPanel battle={battle} stats={stats} />}
                 </div>
             </div>
         </AuthenticatedLayout>
     );
 }
 
-function MatchupTypes({ pokemon, label, align = 'left' }) {
-    const types = [pokemon.primary_type, pokemon.secondary_type].filter(Boolean);
-    return (
-        <div className={`flex flex-col gap-1 ${align === 'right' ? 'items-end' : 'items-start'}`}>
-            <span className="text-gray-400">{label}</span>
-            <div className="flex gap-1">
-                {types.map((t) => {
-                    const { bg, text } = getTypeStyle(t.slug);
-                    return (
-                        <span key={t.slug} className={`${bg} ${text} px-2 py-0.5 rounded-full text-[10px] font-bold uppercase`}>
-                            {t.name}
-                        </span>
-                    );
-                })}
-            </div>
-        </div>
-    );
+function ResultBadge({ result }) {
+    const map = {
+        win:  { label: '🏆 Vitória', cls: 'bg-yellow-100 text-yellow-700' },
+        loss: { label: '💀 Derrota', cls: 'bg-red-100 text-red-600' },
+        draw: { label: '🤝 Empate',  cls: 'bg-gray-100 text-gray-600' },
+    };
+    const { label, cls } = map[result] ?? map.draw;
+    return <span className={`text-xs font-bold px-3 py-1 rounded-full ${cls}`}>{label}</span>;
 }

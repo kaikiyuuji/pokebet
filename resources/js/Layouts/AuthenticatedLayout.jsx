@@ -25,8 +25,11 @@ export default function AuthenticatedLayout({ header, children }) {
                                 <NavLink href={route('dashboard')} active={route().current('dashboard')}>
                                     Dashboard
                                 </NavLink>
-                                <NavLink href={route('battle.new')} active={route().current('battle.*')}>
+                                <NavLink href={route('battle.new')} active={route().current('battle.new') || route().current('battle.show')}>
                                     ⚔️ Batalha
+                                </NavLink>
+                                <NavLink href={route('battles.index')} active={route().current('battles.*')}>
+                                    📜 Histórico
                                 </NavLink>
                             </div>
                         </div>
@@ -96,8 +99,11 @@ export default function AuthenticatedLayout({ header, children }) {
                         <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>
                             Dashboard
                         </ResponsiveNavLink>
-                        <ResponsiveNavLink href={route('battle.new')} active={route().current('battle.*')}>
+                        <ResponsiveNavLink href={route('battle.new')} active={route().current('battle.new') || route().current('battle.show')}>
                             ⚔️ Batalha
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink href={route('battles.index')} active={route().current('battles.*')}>
+                            📜 Histórico
                         </ResponsiveNavLink>
                     </div>
 
