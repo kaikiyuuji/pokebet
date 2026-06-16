@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Pokemon extends Model
 {
+    protected $table = 'pokemons';
+
     protected $fillable = [
         'pokeapi_id',
         'name',

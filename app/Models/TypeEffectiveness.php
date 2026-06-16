@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TypeEffectiveness extends Model
 {
+    protected $table = 'type_effectiveness';
+
     protected $fillable = [
         'attacking_type_id',
         'defending_type_id',
