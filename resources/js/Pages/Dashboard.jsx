@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 function StatCard({ icon, label, value, color = 'indigo' }) {
     const colors = {
@@ -18,21 +18,24 @@ function StatCard({ icon, label, value, color = 'indigo' }) {
     );
 }
 
-function ActionCard({ icon, title, description, disabled }) {
-    return (
-        <div className={`flex items-start gap-4 rounded-lg border p-4 transition-colors ${
+function ActionCard({ icon, title, description, href, disabled }) {
+    const inner = (
+        <div className={`flex items-start gap-4 rounded-xl border p-5 transition-all duration-150 ${
             disabled
                 ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                : 'border-indigo-100 bg-indigo-50 hover:bg-indigo-100 cursor-pointer'
+                : 'border-indigo-100 bg-indigo-50 hover:bg-indigo-100 hover:shadow-sm cursor-pointer'
         }`}>
             <span className="text-3xl">{icon}</span>
             <div>
                 <p className="font-semibold text-gray-800">{title}</p>
-                <p className="text-sm text-gray-500">{description}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{description}</p>
                 {disabled && <p className="text-xs text-gray-400 mt-1">Em breve</p>}
             </div>
         </div>
     );
+
+    if (href) return <Link href={href}>{inner}</Link>;
+    return <div>{inner}</div>;
 }
 
 export default function Dashboard() {
@@ -73,7 +76,12 @@ export default function Dashboard() {
                     <div className="rounded-xl border border-gray-200 bg-white p-6">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">Começar</h3>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <ActionCard icon="⚔️" title="Nova Batalha" description="Escolha um Pokémon e batalhe" disabled />
+                            <ActionCard
+                                icon="⚔️"
+                                title="Nova Batalha"
+                                description="Escolha um Pokémon e batalhe"
+                                href={route('battle.new')}
+                            />
                             <ActionCard icon="🏪" title="Loja" description="Compre novos Pokémon" disabled />
                             <ActionCard icon="🎴" title="Coleção" description="Veja seus Pokémon" disabled />
                         </div>

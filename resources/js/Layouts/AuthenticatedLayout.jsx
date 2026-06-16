@@ -25,6 +25,9 @@ export default function AuthenticatedLayout({ header, children }) {
                                 <NavLink href={route('dashboard')} active={route().current('dashboard')}>
                                     Dashboard
                                 </NavLink>
+                                <NavLink href={route('battle.new')} active={route().current('battle.*')}>
+                                    ⚔️ Batalha
+                                </NavLink>
                             </div>
                         </div>
 
@@ -92,6 +95,9 @@ export default function AuthenticatedLayout({ header, children }) {
                     <div className="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink href={route('battle.new')} active={route().current('battle.*')}>
+                            ⚔️ Batalha
                         </ResponsiveNavLink>
                     </div>
 
