@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Battle animations ─────────────────────────────────────────── */
+
+@keyframes battle-lunge-right {
+    0%   { transform: translateX(0)   scaleX(1); }
+    40%  { transform: translateX(18px) scaleX(1); }
+    100% { transform: translateX(0)   scaleX(1); }
+}
+
+@keyframes battle-lunge-left {
+    0%   { transform: translateX(0)    scaleX(-1); }
+    40%  { transform: translateX(-18px) scaleX(-1); }
+    100% { transform: translateX(0)    scaleX(-1); }
+}
+
+@keyframes battle-hit {
+    0%, 100% { opacity: 1; filter: brightness(1); }
+    20%      { opacity: 0.15; filter: brightness(2); }
+    40%      { opacity: 0.9;  filter: brightness(1); }
+    60%      { opacity: 0.15; filter: brightness(2); }
+    80%      { opacity: 0.9;  filter: brightness(1); }
+}
+
+@keyframes battle-faint {
+    0%   { opacity: 1;   transform: translateY(0); }
+    100% { opacity: 0;   transform: translateY(40px); }
+}
+
+@keyframes hp-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.7; }
+}
+
+.battle-lunge-right { animation: battle-lunge-right 0.4s ease-out; }
+.battle-lunge-left  { animation: battle-lunge-left  0.4s ease-out; }
+.battle-hit         { animation: battle-hit 0.6s ease-in-out; }
+.battle-faint       { animation: battle-faint 0.8s ease-in forwards; }
