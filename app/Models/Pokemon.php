@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pokemon extends Model
 {
@@ -52,11 +51,21 @@ class Pokemon extends Model
         return $this->belongsToMany(User::class, 'user_pokemons');
     }
 
-    public function getSpritAttribute(): string
+    public function getSpriteAttribute(): string
     {
         return $this->sprite_official
             ?? $this->sprite_home
             ?? $this->sprite_front
             ?? config('pokeapi.image_fallback');
+    }
+
+    public function getBaseTotalAttribute(): int
+    {
+        return $this->base_hp
+            + $this->base_attack
+            + $this->base_defense
+            + $this->base_special_attack
+            + $this->base_special_defense
+            + $this->base_speed;
     }
 }
