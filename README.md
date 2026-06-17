@@ -1,65 +1,100 @@
 # Pokémon Battle Bets
 
-Web app where users pick Pokémon, place bets, simulate battles server-side, and earn or lose coins based on results.
+Aplicação web onde o usuário escolhe um Pokémon, define uma aposta, assiste à batalha simulada no servidor e ganha ou perde moedas com base no resultado.
+
+> Desenvolvido com pair programming ao lado do [Claude](https://claude.ai) (Anthropic) — das decisões de arquitetura até a implementação das features.
 
 ## Stack
 
-| Layer | Technology |
-|-------|-----------|
+| Camada | Tecnologia |
+|--------|-----------|
 | Backend | Laravel 13 / PHP 8.3+ |
 | Frontend | React 18 + Inertia.js + Tailwind CSS |
-| Database | PostgreSQL |
-| Cache / Queue | Redis |
-| Auth | Laravel Breeze |
-| External data | PokéAPI v2 (import + runtime cache) |
+| Banco de dados | SQLite (dev) / PostgreSQL (prod) |
+| Cache / Fila | File/Sync (dev) / Redis (prod) |
+| Autenticação | Laravel Breeze |
+| Dados externos | PokéAPI v2 (cache local 7 dias) |
 
-## Quick start
+## Instalação
 
 ```bash
-# 1. Dependencies
+# 1. Dependências
 composer install
 npm install
 
-# 2. Environment
+# 2. Ambiente
 cp .env.example .env
 php artisan key:generate
+```
 
-# 3. Configure .env with PostgreSQL credentials, then:
+Edite o `.env` para usar SQLite (sem precisar de PostgreSQL ou Redis):
+
+```env
+DB_CONNECTION=sqlite
+SESSION_DRIVER=file
+QUEUE_CONNECTION=sync
+CACHE_STORE=file
+```
+
+```bash
+# 3. Crie o arquivo do banco e rode as migrations
+touch database/database.sqlite
 php artisan migrate
+```
 
-# 4. Dev server (Laravel + Vite concurrent)
+---
+
+### Opção A — `php artisan serve` (sem Herd)
+
+Um único comando sobe o servidor PHP, Vite e os logs:
+
+```bash
 composer run dev
 ```
 
-## Game flow
+Acesse em `http://localhost:8000`.
 
-1. Player selects a Pokémon from Gen 1 roster
-2. Opponent is drawn via roulette (server-side random)
-3. Player sets bet amount (min 10 coins)
-4. Battle is simulated on the server and saved turn-by-turn
-5. **Win:** player earns `bet × 0.8` coins profit
-6. **Loss:** player loses the full bet
-7. **Draw:** no coin change
+---
 
-### Level balancing
+### Opção B — Laravel Herd
 
-Opponent level is adjusted based on evolutionary completeness (`stage / chain_length`):
+1. Abra o **Herd** e adicione a pasta do projeto
+2. O Herd serve automaticamente em `http://pokebet.test`
+3. Suba apenas o Vite:
 
-| Player Pokémon | vs Opponent | Opponent boost |
-|---------------|-------------|---------------|
-| Legendary (Mewtwo, birds, Mew) | Any | Player capped at Lv.50; opponent always Lv.75–100 |
-| Final evo of 3-stage (Charizard) | Base of 3-stage (Bulbasaur) | +26–34 levels |
-| Final evo of 3-stage | Mid of 3-stage (Ivysaur) | +11–19 levels |
-| Final evo of 2-stage (Raticate) | Base of 2-stage (Rattata) | +18–26 levels |
+```bash
+npm run dev
+```
+
+## Fluxo do jogo
+
+1. Jogador seleciona um Pokémon da 1ª geração
+2. Adversário é sorteado via roleta (servidor)
+3. Jogador define o valor da aposta (mínimo 10 moedas)
+4. Batalha é simulada no servidor e salva turno a turno
+5. **Vitória:** jogador recebe `aposta × 0,8` de lucro
+6. **Derrota:** jogador perde o valor apostado integralmente
+7. **Empate:** sem alteração de saldo
+
+### Balanceamento de nível
+
+O nível do adversário é ajustado pela pontuação de completude evolutiva (`estágio / tamanho_da_cadeia`):
+
+| Pokémon do jogador | vs Adversário | Ajuste no adversário |
+|--------------------|--------------|----------------------|
+| Lendário (Mewtwo, pássaros, Mew) | Qualquer | Jogador limitado ao Nv. 50; adversário sempre Nv. 75–100 |
+| Evo final de cadeia 3 (Charizard) | Base de cadeia 3 (Bulbasaur) | +26–34 níveis |
+| Evo final de cadeia 3 | Meio de cadeia 3 (Ivysaur) | +11–19 níveis |
+| Evo final de cadeia 2 (Raticate) | Base de cadeia 2 (Rattata) | +18–26 níveis |
 | Standalone (Lapras, Ditto) | Standalone | Normal ±4 |
 
-## Project structure
+## Estrutura do projeto
 
 ```
 app/
   Game/
     Battle/     # BattleSimulator, DamageCalculator, MoveSelector, LevelGenerator
-    Pokemon/    # PokeApiService (runtime cache), PokemonImporter
+    Pokemon/    # PokeApiService (cache em runtime), PokemonImporter
     Economy/    # CoinService
   Actions/
     Battles/    # CreateBattleAction, SimulateBattleAction, ApplyBattleRewardsAction
@@ -70,9 +105,7 @@ database/
 resources/js/
   Pages/Battle/ # SelectPokemon, Show, History, Log
 docs/
-  research/     # Technical research per feature
-  prd/          # Product requirement docs
-  qa/           # QA plans
+  research/     # Pesquisa técnica por feature
+  prd/          # Documentos de requisitos
+  qa/           # Planos de QA
 ```
-
-See [CLAUDE.md](CLAUDE.md) for architecture rules, critical constraints, and design patterns.
