@@ -56,12 +56,19 @@ class BattleController extends Controller
         $request->validate([
             'pokeapi_id'          => ['required', 'integer', 'min:1', 'max:10000'],
             'opponent_pokeapi_id' => ['nullable', 'integer', 'min:1', 'max:10000', 'different:pokeapi_id'],
+            'bet_amount'          => ['required', 'integer', 'min:10'],
         ]);
 
+        $betAmount         = (int) $request->bet_amount;
+        $user              = $request->user();
         $pokeapiId         = (int) $request->pokeapi_id;
         $opponentPokeapiId = $request->filled('opponent_pokeapi_id')
             ? (int) $request->opponent_pokeapi_id
             : null;
+
+        if ($betAmount > $user->coins) {
+            return back()->withErrors(['bet_amount' => 'Saldo insuficiente para esta aposta.']);
+        }
 
         $player   = $this->pokeApi->fetchForBattle($pokeapiId);
         $opponent = $opponentPokeapiId
@@ -78,7 +85,7 @@ class BattleController extends Controller
             $opponent = $this->pickBattleOpponent($pokeapiId, $moveSelector);
         }
 
-        $battle = $create->execute($request->user(), $player, $opponent);
+        $battle = $create->execute($user, $player, $opponent, $betAmount);
         $battle = $simulate->execute($battle, $player, $opponent);
         $rewards->execute($battle);
 

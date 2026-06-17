@@ -1,8 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Swords, Check, X, Sparkles } from 'lucide-react';
+import { Search, Swords, Check, X, Sparkles, Coins } from 'lucide-react';
 
 const ROULETTE_FALLBACK = [
     { pokeapi_id: 25, name: 'Pikachu', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png' },
@@ -30,7 +30,7 @@ function PokemonCard({ pokemon, selected, onSelect, index }) {
             type="button"
             onClick={() => onSelect(pokemon)}
             className={`
-                poke-card pokemon-card hover-lift group flex min-h-[168px] flex-col items-center gap-2 p-3 text-center
+                poke-card pokemon-card hover-lift group flex min-h-[210px] flex-col items-center gap-2 p-3 text-center
                 ${selected ? `ring-2 ring-offset-2 ${style.ring}` : ''}
             `}
             style={{ '--card-index': index }}
@@ -47,13 +47,12 @@ function PokemonCard({ pokemon, selected, onSelect, index }) {
                 {formatPokedexNumber(pokemon.pokeapi_id)}
             </span>
 
-            <div className="relative flex h-20 w-20 items-center justify-center rounded border border-app bg-[var(--surface-strong)]">
+            <div className="relative flex h-28 w-28 items-center justify-center rounded border border-app bg-[var(--surface-strong)]">
                 <div className="absolute inset-x-3 bottom-2 h-2 rounded bg-black/10" />
                 <img
                     src={pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png'}
                     alt={pokemon.name}
                     className="relative h-full w-full object-contain drop-shadow-md transition-transform duration-200 group-hover:-translate-y-1 group-hover:scale-110"
-                    style={{ imageRendering: 'pixelated' }}
                     loading="lazy"
                     onError={(e) => { e.currentTarget.src = '/images/pokemon-placeholder.png'; }}
                 />
@@ -147,12 +146,119 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function OpponentRoulette({ show, selected, candidates, phase, opponent }) {
+function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetConfirm, onCancel, userCoins, processing }) {
+    const [betInput, setBetInput] = useState('');
+
     if (!show || !selected) return null;
 
     const entries = candidates.length > 0 ? candidates : ROULETTE_FALLBACK;
     const reel = [...entries, ...entries];
     const revealed = phase === 'revealed' && opponent;
+    const betting = phase === 'betting' && opponent;
+
+    const betValue = parseInt(betInput, 10) || 0;
+    const canBet = betValue >= 10 && betValue <= userCoins && !processing;
+
+    const setPreset = (pct) => {
+        const amount = pct === 1 ? userCoins : Math.max(10, Math.floor(userCoins * pct));
+        setBetInput(String(amount));
+    };
+
+    const profit = Math.floor(betValue * 0.8);
+
+    if (betting) {
+        return (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+                <div className="poke-card w-full max-w-sm p-5 animate-pop">
+                    <div className="mb-4 flex items-center gap-3 rounded border-2 border-slate-900 bg-[var(--surface-strong)] p-3">
+                        <img
+                            src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
+                            alt={opponent.name}
+                            className="h-16 w-16 shrink-0 object-contain drop-shadow-md"
+                        />
+                        <div>
+                            <p className="font-black capitalize text-app">{opponent.name}</p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                                <TypeBadge type={opponent.primary_type} size="xs" />
+                                <TypeBadge type={opponent.secondary_type} size="xs" />
+                            </div>
+                            <p className="mt-1 text-xs text-app-soft">é seu adversário!</p>
+                        </div>
+                    </div>
+
+                    <p className="font-black text-app">Quanto quer apostar?</p>
+                    <p className="mt-0.5 text-xs text-app-muted">
+                        Saldo: <span className="font-bold text-yellow-600">{userCoins.toLocaleString('pt-BR')}</span> moedas
+                    </p>
+
+                    <div className="mt-3 flex gap-1.5">
+                        {[0.25, 0.5, 0.75, 1].map((pct) => (
+                            <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setPreset(pct)}
+                                disabled={userCoins < 10}
+                                className="btn-quiet flex-1 py-1 text-xs font-bold disabled:opacity-40"
+                            >
+                                {pct === 1 ? 'MAX' : `${pct * 100}%`}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                        <Coins className="h-5 w-5 shrink-0 text-yellow-500" />
+                        <input
+                            type="number"
+                            min="10"
+                            max={userCoins}
+                            value={betInput}
+                            onChange={(e) => setBetInput(e.target.value)}
+                            placeholder="Mínimo 10"
+                            className="flex-1 rounded-lg border border-app bg-app-surface px-3 py-2 text-center text-lg font-black text-app shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                        />
+                    </div>
+
+                    {betValue >= 10 && (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div className="rounded border border-app bg-[var(--surface-strong)] p-2 text-center">
+                                <p className="text-xs font-semibold text-green-600">Vitória</p>
+                                <p className="text-sm font-black text-green-600">+{profit.toLocaleString('pt-BR')}</p>
+                            </div>
+                            <div className="rounded border border-app bg-[var(--surface-strong)] p-2 text-center">
+                                <p className="text-xs font-semibold text-red-500">Derrota</p>
+                                <p className="text-sm font-black text-red-500">-{betValue.toLocaleString('pt-BR')}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {betValue > 0 && !canBet && (
+                        <p className="mt-2 text-xs text-red-500">
+                            {betValue > userCoins ? 'Saldo insuficiente' : betValue < 10 ? 'Mínimo 10 moedas' : ''}
+                        </p>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={() => onBetConfirm(betValue)}
+                        disabled={!canBet}
+                        className="btn-poke mt-4 flex w-full items-center justify-center gap-2 py-3 font-bold disabled:opacity-50"
+                    >
+                        <Swords className="h-4 w-4" />
+                        {processing ? 'Iniciando...' : 'Apostar e Batalhar'}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        disabled={processing}
+                        className="btn-quiet mt-2 w-full py-2 text-sm font-semibold disabled:opacity-50"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -176,14 +282,13 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent }) {
                             src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
                             alt={opponent.name}
                             className="mx-auto h-32 w-32 object-contain drop-shadow-xl"
-                            style={{ imageRendering: 'pixelated' }}
                         />
                         <p className="mt-3 text-xl font-black capitalize text-app">{opponent.name}</p>
                         <div className="mt-2 flex justify-center gap-1">
                             <TypeBadge type={opponent.primary_type} size="xs" />
                             <TypeBadge type={opponent.secondary_type} size="xs" />
                         </div>
-                        <p className="mt-3 text-xs font-semibold uppercase text-app-soft">Preparando batalha...</p>
+                        <p className="mt-3 text-xs font-semibold uppercase text-app-soft">Definindo aposta...</p>
                     </div>
                 ) : (
                     <div className="roulette-window relative mt-5 overflow-hidden rounded border-2 border-slate-900 bg-[var(--surface-strong)] py-3 shadow-inner">
@@ -198,7 +303,6 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent }) {
                                         src={pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png'}
                                         alt={pokemon.name}
                                         className="h-16 w-16 object-contain drop-shadow-md"
-                                        style={{ imageRendering: 'pixelated' }}
                                     />
                                     <span className="mt-1 max-w-full truncate text-xs font-black capitalize text-app">
                                         {pokemon.name}
@@ -214,6 +318,9 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent }) {
 }
 
 export default function SelectPokemon({ pokemons, types, filters }) {
+    const { auth } = usePage().props;
+    const userCoins = auth.user.coins;
+
     const [selected, setSelected] = useState(null);
     const [search, setSearch] = useState(filters.search ?? '');
     const searchTimer = useRef(null);
@@ -270,25 +377,39 @@ export default function SelectPokemon({ pokemons, types, filters }) {
             setRouletteOpponent(opponent);
             setRoulettePhase('revealed');
 
-            await sleep(1300);
+            await sleep(1200);
 
-            router.post(
-                route('battle.store'),
-                {
-                    pokeapi_id: selected.pokeapi_id,
-                    opponent_pokeapi_id: opponent.pokeapi_id,
-                },
-                {
-                    onFinish: () => {
-                        setProcessing(false);
-                        setShowRoulette(false);
-                    },
-                }
-            );
+            setRoulettePhase('betting');
+            setProcessing(false);
         } catch {
             setProcessing(false);
             setShowRoulette(false);
         }
+    };
+
+    const handleBetConfirm = (betAmount) => {
+        setProcessing(true);
+        router.post(
+            route('battle.store'),
+            {
+                pokeapi_id: selected.pokeapi_id,
+                opponent_pokeapi_id: rouletteOpponent.pokeapi_id,
+                bet_amount: betAmount,
+            },
+            {
+                onFinish: () => {
+                    setProcessing(false);
+                    setShowRoulette(false);
+                },
+            }
+        );
+    };
+
+    const handleRouletteCancel = () => {
+        setShowRoulette(false);
+        setRoulettePhase('spinning');
+        setRouletteOpponent(null);
+        setProcessing(false);
     };
 
     const isEmpty = pokemons.data.length === 0;
@@ -365,7 +486,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                     )}
 
                     {!isEmpty && (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                             {pokemons.data.map((pokemon, index) => (
                                 <PokemonCard
                                     key={pokemon.id}
@@ -397,6 +518,10 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                 candidates={rouletteCandidates}
                 phase={roulettePhase}
                 opponent={rouletteOpponent}
+                onBetConfirm={handleBetConfirm}
+                onCancel={handleRouletteCancel}
+                userCoins={userCoins}
+                processing={processing}
             />
         </AuthenticatedLayout>
     );

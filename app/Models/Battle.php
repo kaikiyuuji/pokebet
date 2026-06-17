@@ -21,6 +21,7 @@ class Battle extends Model
         'coins_awarded',
         'random_seed',
         'luck_tier',
+        'bet_amount',
     ];
 
     protected $casts = [

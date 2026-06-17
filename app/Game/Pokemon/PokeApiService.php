@@ -30,6 +30,45 @@ class PokeApiService
     }
 
     /**
+     * Return chain info for balancing. Cached 7 days.
+     *
+     * Returns:
+     *   stage        – position in the evo chain (1 = base, 2 = mid, 3 = final)
+     *   chain_length – max depth of the full evo chain (1 = standalone, 2 or 3)
+     *   is_legendary – true for legendary / mythical
+     *
+     * "Completeness score" = stage / chain_length:
+     *   Lapras  (1/1 = 1.0)  == Charizard (3/3 = 1.0)  → equal
+     *   Ivysaur (2/3 ≈ 0.67) != Raticate  (2/2 = 1.0)  → Raticate is fully evolved
+     */
+    public function getChainInfo(int $pokeapiId): array
+    {
+        return Cache::remember(
+            "pokeapi.chaininfo.{$pokeapiId}",
+            86400 * 7,
+            function () use ($pokeapiId) {
+                try {
+                    $species     = $this->fetchSpecies($pokeapiId);
+                    $slug        = $species['name'];
+                    $isLegendary = (bool) ($species['is_legendary'] ?? false)
+                                || (bool) ($species['is_mythical'] ?? false);
+
+                    $chainUrl    = $species['evolution_chain']['url'];
+                    $chain       = $this->fetchEvolutionChain($chainUrl);
+                    $root        = $chain['chain'];
+
+                    $stage       = $this->findStageInChain($root, $slug) ?? 1;
+                    $chainLength = $this->chainMaxDepth($root);
+
+                    return ['stage' => $stage, 'chain_length' => $chainLength, 'is_legendary' => $isLegendary];
+                } catch (\Exception) {
+                    return ['stage' => 1, 'chain_length' => 1, 'is_legendary' => false];
+                }
+            }
+        );
+    }
+
+    /**
      * Pick a random Pokémon (different from given ID) for use as battle opponent.
      */
     public function randomOpponent(int $excludePokeapiId, int $maxId = 151): PokemonData
@@ -91,6 +130,51 @@ class PokeApiService
     }
 
     // ──────────────────────────────────────────────────
+
+    private function fetchSpecies(int $pokeapiId): array
+    {
+        return Cache::remember(
+            "pokeapi.species.{$pokeapiId}",
+            86400 * 7,
+            fn() => $this->fetch("/pokemon-species/{$pokeapiId}")
+        );
+    }
+
+    private function fetchEvolutionChain(string $url): array
+    {
+        return Cache::remember(
+            'pokeapi.evochain.' . md5($url),
+            86400 * 7,
+            fn() => $this->fetch($url)
+        );
+    }
+
+    /** Recursively find the depth (1-based stage) of $slug in the chain tree. */
+    private function findStageInChain(array $node, string $slug, int $depth = 1): ?int
+    {
+        if ($node['species']['name'] === $slug) {
+            return $depth;
+        }
+        foreach ($node['evolves_to'] as $child) {
+            $result = $this->findStageInChain($child, $slug, $depth + 1);
+            if ($result !== null) {
+                return $result;
+            }
+        }
+        return null;
+    }
+
+    /** Return the max depth (chain length) of the evo tree. */
+    private function chainMaxDepth(array $node, int $depth = 1): int
+    {
+        if (empty($node['evolves_to'])) {
+            return $depth;
+        }
+        return max(array_map(
+            fn($child) => $this->chainMaxDepth($child, $depth + 1),
+            $node['evolves_to']
+        ));
+    }
 
     private function buildPokemonData(array $data): PokemonData
     {
