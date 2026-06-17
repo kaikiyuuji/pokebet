@@ -96,6 +96,7 @@ class BattleController extends Controller
                 'id'            => $battle->id,
                 'result'        => $battle->result,
                 'coins_awarded' => $battle->coins_awarded,
+                'luck_tier'     => $battle->luck_tier,
                 'player' => [
                     'pokemon' => $this->serializePokemon($player),
                     'level'   => $battle->player_level,

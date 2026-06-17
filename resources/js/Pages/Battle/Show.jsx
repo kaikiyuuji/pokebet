@@ -1,12 +1,18 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
+import { sound } from '@/hooks/useSound';
 import { Head, Link } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Trophy, Skull, Handshake, Sword, Bot, ClipboardList, Play, ChevronsRight,
+    Star, Sparkles, Leaf, Coins, ChevronLeft, ChevronDown, ChevronUp,
+    Swords, ScrollText, ArrowRight, Check,
+} from 'lucide-react';
 
 // ── Timing constants ───────────────────────────────────────────────────────────
-const TURN_MS    = 1500;
-const ATTACK_MS  = 350;
-const HIT_MS     = 650;
+const TURN_MS   = 1500;
+const ATTACK_MS = 350;
+const HIT_MS    = 650;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function hpColor(pct) {
@@ -18,31 +24,34 @@ function hpColor(pct) {
 function effectivenessLabel(eff) {
     switch (eff) {
         case 'super-effective':
-        case 'double-super-effective': return { text: 'Super efetivo!', cls: 'text-pink-400' };
-        case 'not-very-effective':      return { text: 'Fraco…',         cls: 'text-blue-400' };
+        case 'double-super-effective': return { text: 'Super efetivo!', cls: 'text-pink-300' };
+        case 'not-very-effective':      return { text: 'Fraco…',         cls: 'text-blue-300' };
         case 'immune':                  return { text: 'Sem efeito!',    cls: 'text-gray-400' };
         default:                        return null;
     }
 }
 
-// ── HP Bar ────────────────────────────────────────────────────────────────────
+// ── HP Bar (Pokémon DS style) ──────────────────────────────────────────────────
 function HpBar({ current, max, name, level, side }) {
-    const pct = max > 0 ? Math.max(0, current) / max : 0;
+    const pct     = max > 0 ? Math.max(0, current) / max : 0;
     const isRight = side === 'opponent';
 
     return (
-        <div className={`flex flex-col gap-0.5 ${isRight ? 'items-end' : 'items-start'}`}>
-            <div className={`flex items-baseline gap-1.5 ${isRight ? 'flex-row-reverse' : ''}`}>
-                <span className="text-sm font-bold text-white drop-shadow">{name}</span>
-                <span className="text-xs text-slate-400">Lv.{level}</span>
+        <div className={`bg-black bg-opacity-60 rounded-lg px-3 py-2 min-w-[148px] ${isRight ? 'text-right' : ''}`}>
+            <div className={`flex items-baseline justify-between mb-1 ${isRight ? 'flex-row-reverse' : ''}`}>
+                <span className="font-pixel text-[8px] text-white leading-none">{name}</span>
+                <span className="font-pixel text-[7px] text-slate-400 leading-none">Lv.{level}</span>
             </div>
-            <div className="w-36 h-2.5 rounded-full bg-slate-700 overflow-hidden shadow-inner">
-                <div
-                    className={`h-full rounded-full ${hpColor(pct)}`}
-                    style={{ width: `${(pct * 100).toFixed(1)}%`, transition: 'width 900ms ease-out' }}
-                />
+            <div className={`flex items-center gap-1.5 ${isRight ? 'flex-row-reverse' : ''}`}>
+                <span className="font-pixel text-[7px] text-green-400 shrink-0">HP</span>
+                <div className="flex-1 h-2.5 rounded-sm bg-gray-800 overflow-hidden border border-gray-700">
+                    <div
+                        className={`h-full rounded-sm ${hpColor(pct)}`}
+                        style={{ width: `${(pct * 100).toFixed(1)}%`, transition: 'width 900ms ease-out' }}
+                    />
+                </div>
             </div>
-            <span className="text-xs text-slate-500 font-mono">
+            <span className={`font-pixel text-[7px] text-slate-400 mt-1 block ${isRight ? 'text-right' : ''}`}>
                 {Math.max(0, current)}/{max}
             </span>
         </div>
@@ -51,7 +60,7 @@ function HpBar({ current, max, name, level, side }) {
 
 // ── Pokémon Sprite ─────────────────────────────────────────────────────────────
 function PokemonSprite({ pokemon, side, animClass, fainted }) {
-    const src = pokemon.sprite ?? '/images/pokemon-placeholder.png';
+    const src      = pokemon.sprite ?? '/images/pokemon-placeholder.png';
     const mirrored = side === 'player' ? 'scaleX(-1)' : 'scaleX(1)';
 
     return (
@@ -74,19 +83,18 @@ function LiveLog({ turns, currentIdx }) {
     const visible = [...turns].slice(0, currentIdx).reverse().slice(0, 4);
 
     return (
-        <div className="bg-slate-900 rounded-xl p-3 h-24 font-mono text-xs overflow-hidden flex flex-col gap-1">
+        <div className="bg-slate-900 rounded-xl border border-slate-700 p-3 h-24 font-mono text-xs overflow-hidden flex flex-col gap-1">
             {visible.length === 0 && <span className="text-slate-600">Aguardando…</span>}
             {visible.map((t, i) => {
                 const eff = effectivenessLabel(t.effectiveness);
+                const AttackerIcon = t.attacker === 'player' ? Sword : Bot;
                 return (
-                    <div key={currentIdx - i} className={i > 0 ? 'opacity-40' : ''}>
-                        <span className="text-slate-400">
-                            {t.attacker === 'player' ? '🗡️' : '👾'}
-                        </span>{' '}
+                    <div key={currentIdx - i} className={`flex items-center gap-1.5 ${i > 0 ? 'opacity-40' : ''}`}>
+                        <AttackerIcon className="w-3 h-3 text-slate-400 shrink-0" />
                         <span className="text-white">{t.move_name}</span>
-                        {t.damage_dealt > 0 && <span className="text-green-400"> −{t.damage_dealt}</span>}
-                        {t.is_critical && <span className="text-yellow-300"> ★</span>}
-                        {eff && <span className={eff.cls}> {eff.text}</span>}
+                        {t.damage_dealt > 0 && <span className="text-green-400">−{t.damage_dealt}</span>}
+                        {t.is_critical && <Star className="w-3 h-3 text-yellow-300 fill-yellow-300" />}
+                        {eff && <span className={eff.cls}>{eff.text}</span>}
                     </div>
                 );
             })}
@@ -97,11 +105,13 @@ function LiveLog({ turns, currentIdx }) {
 // ── Arena ──────────────────────────────────────────────────────────────────────
 function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAnim, playerFainted, opponentFainted, phase, turnIdx, totalTurns }) {
     return (
-        <div className="rounded-2xl bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 p-5 shadow-2xl">
-            {/* Opponent row */}
+        <div className="rounded-2xl battle-arena-bg p-5 shadow-2xl border-4 border-gray-800 overflow-hidden">
+            {/* Opponent HP */}
             <div className="flex justify-between items-start mb-1">
                 <HpBar current={opponentHp} max={opponent.max_hp} name={opponent.pokemon.name} level={opponent.level} side="opponent" />
-                <span className="text-xs text-slate-600 font-mono">{formatPokedexNumber(opponent.pokemon.pokeapi_id)}</span>
+                <span className="font-pixel text-[8px] text-gray-700 bg-white bg-opacity-60 px-1.5 py-0.5 rounded">
+                    {formatPokedexNumber(opponent.pokemon.pokeapi_id)}
+                </span>
             </div>
 
             {/* Sprites */}
@@ -109,19 +119,20 @@ function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAni
                 <PokemonSprite pokemon={player.pokemon} side="player" animClass={playerAnim} fainted={playerFainted} />
 
                 <div className="flex flex-col items-center gap-1 shrink-0">
-                    {phase === 'ready' && <span className="text-xl font-black text-slate-600">VS</span>}
+                    {phase === 'ready' && (
+                        <span className="font-pixel text-sm text-gray-700 bg-white bg-opacity-70 px-2 py-1 rounded">VS</span>
+                    )}
                     {phase === 'playing' && (
-                        <span className="text-xs text-slate-500 font-mono tabular-nums">
+                        <span className="font-pixel text-[8px] text-gray-700 bg-white bg-opacity-60 px-2 py-1 rounded tabular-nums">
                             {turnIdx}/{totalTurns}
                         </span>
                     )}
-                    {phase === 'finished' && <span className="text-lg text-slate-600">·</span>}
                 </div>
 
                 <PokemonSprite pokemon={opponent.pokemon} side="opponent" animClass={opponentAnim} fainted={opponentFainted} />
             </div>
 
-            {/* Player row */}
+            {/* Player HP */}
             <div className="flex justify-end mt-1">
                 <HpBar current={playerHp} max={player.max_hp} name={player.pokemon.name} level={player.level} side="player" />
             </div>
@@ -132,25 +143,44 @@ function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAni
 // ── Result panel ───────────────────────────────────────────────────────────────
 function ResultPanel({ battle, stats }) {
     const [logOpen, setLogOpen] = useState(false);
-    const { result, coins_awarded, player, opponent, turns } = battle;
+    const { result, coins_awarded, luck_tier, player, opponent, turns } = battle;
+    const isLoss = result === 'loss';
 
     const cfg = {
-        win:  { emoji: '🏆', label: 'Vitória!',  banner: 'from-yellow-400 to-amber-500',  text: 'text-amber-900' },
-        loss: { emoji: '💀', label: 'Derrota…',  banner: 'from-gray-800 to-slate-900',    text: 'text-slate-200' },
-        draw: { emoji: '🤝', label: 'Empate!',   banner: 'from-indigo-600 to-purple-700', text: 'text-white' },
-    }[result] ?? { emoji: '?', label: result, banner: 'from-gray-600 to-gray-700', text: 'text-white' };
+        win:  { Icon: Trophy,   label: 'Vitória!', banner: 'from-yellow-400 to-amber-500',  text: 'text-amber-900' },
+        loss: { Icon: Skull,    label: 'Derrota…', banner: 'from-gray-800 to-slate-900',    text: 'text-slate-200' },
+        draw: { Icon: Handshake, label: 'Empate!', banner: 'from-indigo-600 to-purple-700', text: 'text-white' },
+    }[result] ?? { Icon: Swords, label: result, banner: 'from-gray-600 to-gray-700', text: 'text-white' };
+
+    const LuckIcon  = luck_tier === 'jackpot' ? Star : luck_tier === 'super_lucky' ? Sparkles : Leaf;
+    const luckText  = luck_tier === 'jackpot' ? 'JACKPOT!' : luck_tier === 'super_lucky' ? 'SUPER SORTE!' : luck_tier === 'lucky' ? 'Sorte!' : null;
+    const showLuck  = !isLoss && luckText;
 
     return (
         <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             {/* Banner */}
             <div className={`bg-gradient-to-r ${cfg.banner} px-6 py-5 flex items-center justify-between`}>
                 <div className="flex items-center gap-3">
-                    <span className="text-4xl">{cfg.emoji}</span>
-                    <h2 className={`text-2xl font-black ${cfg.text}`}>{cfg.label}</h2>
+                    <cfg.Icon className={`w-10 h-10 ${cfg.text}`} />
+                    <div>
+                        <h2 className={`font-pixel text-sm ${cfg.text}`}>{cfg.label}</h2>
+                        {showLuck && (
+                            <div className={`flex items-center gap-1 mt-1 ${
+                                luck_tier === 'jackpot' ? 'text-yellow-300' :
+                                luck_tier === 'super_lucky' ? 'text-pink-200' : 'text-green-200'
+                            }`}>
+                                <LuckIcon className="w-3 h-3" />
+                                <span className="font-pixel text-[8px]">{luckText}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className={`flex flex-col items-end ${cfg.text}`}>
-                    <span className="text-xs opacity-70">moedas ganhas</span>
-                    <span className="text-2xl font-black">🪙 +{coins_awarded}</span>
+                    <span className="text-xs opacity-70">{isLoss ? 'moedas perdidas' : 'moedas ganhas'}</span>
+                    <div className={`flex items-center gap-1.5 text-2xl font-black mt-0.5 ${isLoss ? 'text-red-400' : ''}`}>
+                        <Coins className="w-6 h-6" />
+                        <span>{isLoss ? '-' : '+'}{coins_awarded}</span>
+                    </div>
                 </div>
             </div>
 
@@ -164,8 +194,8 @@ function ResultPanel({ battle, stats }) {
             {/* Best moves */}
             {(stats.playerBestMove || stats.opponentBestMove) && (
                 <div className="grid grid-cols-2 gap-px bg-gray-100">
-                    <BestMoveCell move={stats.playerBestMove} label="Seu melhor golpe" side="player" />
-                    <BestMoveCell move={stats.opponentBestMove} label="Golpe inimigo" side="opponent" />
+                    <BestMoveCell move={stats.playerBestMove} label="Seu melhor golpe" />
+                    <BestMoveCell move={stats.opponentBestMove} label="Golpe inimigo" />
                 </div>
             )}
 
@@ -175,8 +205,11 @@ function ResultPanel({ battle, stats }) {
                     onClick={() => setLogOpen(v => !v)}
                     className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                    <span>📋 Log da batalha <span className="font-normal text-gray-400">({turns.length} turnos)</span></span>
-                    <span className="text-gray-400">{logOpen ? '▲' : '▼'}</span>
+                    <span className="flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4" />
+                        Log da batalha <span className="font-normal text-gray-400">({turns.length} turnos)</span>
+                    </span>
+                    {logOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                 </button>
 
                 {logOpen && <BattleLogTable turns={turns} player={player} opponent={opponent} />}
@@ -186,21 +219,21 @@ function ResultPanel({ battle, stats }) {
             <div className="border-t border-gray-100 px-5 py-4 flex flex-wrap gap-3 justify-center">
                 <Link
                     href={route('battle.new')}
-                    className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow transition-colors"
+                    className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 shadow transition-colors"
                 >
-                    ⚔️ Nova Batalha
+                    <Swords className="w-4 h-4" /> Nova Batalha
                 </Link>
                 <Link
                     href={route('battles.log', battle.id)}
-                    className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                    📋 Log completo
+                    <ClipboardList className="w-4 h-4" /> Log completo
                 </Link>
                 <Link
                     href={route('battles.index')}
-                    className="rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                    📜 Histórico
+                    <ScrollText className="w-4 h-4" /> Histórico
                 </Link>
             </div>
         </div>
@@ -216,7 +249,7 @@ function StatCell({ label, value, highlight = 'text-gray-800' }) {
     );
 }
 
-function BestMoveCell({ move, label, side }) {
+function BestMoveCell({ move, label }) {
     if (!move) return <div className="bg-white p-3" />;
     const typeStyle = move.move_type ? getTypeStyle(move.move_type) : null;
 
@@ -248,29 +281,34 @@ function BattleLogTable({ turns, player, opponent }) {
                         <th className="px-3 py-2 font-medium">Golpe</th>
                         <th className="px-3 py-2 font-medium text-right">Dano</th>
                         <th className="px-3 py-2 font-medium">Efetividade</th>
-                        <th className="px-3 py-2 font-medium text-right">HP 🗡️</th>
-                        <th className="px-3 py-2 font-medium text-right">HP 👾</th>
+                        <th className="px-3 py-2 font-medium text-right">
+                            <Sword className="w-3 h-3 inline" /> HP
+                        </th>
+                        <th className="px-3 py-2 font-medium text-right">
+                            <Bot className="w-3 h-3 inline" /> HP
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     {turns.map((t) => {
-                        const eff = effectivenessLabel(t.effectiveness);
-                        const isPlayer = t.attacker === 'player';
+                        const eff       = effectivenessLabel(t.effectiveness);
+                        const isPlayer  = t.attacker === 'player';
                         const typeStyle = t.move_type ? getTypeStyle(t.move_type) : null;
+                        const AttIcon   = isPlayer ? Sword : Bot;
 
                         return (
                             <tr
                                 key={t.turn_number}
                                 className={`border-b border-gray-50 transition-colors ${
-                                    isPlayer ? 'hover:bg-indigo-50' : 'hover:bg-red-50'
+                                    isPlayer ? 'hover:bg-red-50' : 'hover:bg-slate-50'
                                 }`}
                             >
                                 <td className="px-3 py-1.5 text-gray-400 font-mono">{t.turn_number}</td>
                                 <td className="px-3 py-1.5">
                                     <span className={`inline-flex items-center gap-1 font-medium ${
-                                        isPlayer ? 'text-indigo-600' : 'text-red-500'
+                                        isPlayer ? 'text-red-600' : 'text-slate-500'
                                     }`}>
-                                        {isPlayer ? '🗡️' : '👾'}
+                                        <AttIcon className="w-3 h-3" />
                                         <span className="hidden sm:inline">
                                             {isPlayer ? player.pokemon.name : opponent.pokemon.name}
                                         </span>
@@ -286,7 +324,7 @@ function BattleLogTable({ turns, player, opponent }) {
                                         <span className="text-gray-800">
                                             {t.move_name}
                                             {t.stab && <span className="text-xs text-slate-400 ml-1">STAB</span>}
-                                            {t.is_critical && <span className="text-yellow-500 ml-1">★</span>}
+                                            {t.is_critical && <Star className="w-3 h-3 inline ml-1 text-yellow-500 fill-yellow-500" />}
                                         </span>
                                     </div>
                                 </td>
@@ -316,26 +354,41 @@ function BattleLogTable({ turns, player, opponent }) {
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function Show({ battle }) {
-    const { player, opponent, turns, result, coins_awarded } = battle;
+    const { player, opponent, turns, result, coins_awarded, luck_tier } = battle;
 
-    const [phase, setPhase]             = useState('ready');
-    const [turnIdx, setTurnIdx]         = useState(0);
-    const [playerHp, setPlayerHp]       = useState(player.max_hp);
-    const [opponentHp, setOpponentHp]   = useState(opponent.max_hp);
-    const [playerAnim, setPlayerAnim]   = useState('');
+    const [phase, setPhase]               = useState('ready');
+    const [turnIdx, setTurnIdx]           = useState(0);
+    const [playerHp, setPlayerHp]         = useState(player.max_hp);
+    const [opponentHp, setOpponentHp]     = useState(opponent.max_hp);
+    const [playerAnim, setPlayerAnim]     = useState('');
     const [opponentAnim, setOpponentAnim] = useState('');
     const [playerFainted, setPlayerFainted]     = useState(false);
     const [opponentFainted, setOpponentFainted] = useState(false);
 
     const timers = useRef([]);
-    const later = (fn, ms) => { const t = setTimeout(fn, ms); timers.current.push(t); };
+    const later  = (fn, ms) => { const t = setTimeout(fn, ms); timers.current.push(t); };
     const clearAll = () => { timers.current.forEach(clearTimeout); timers.current = []; };
     useEffect(() => () => clearAll(), []);
 
-    // Battle stats (computed once from turns)
+    // Play result sound when battle ends
+    useEffect(() => {
+        if (phase !== 'finished') return;
+        const id = setTimeout(() => {
+            if (result === 'win') {
+                luck_tier === 'jackpot' ? sound.jackpot() : sound.victory();
+            } else if (result === 'loss') {
+                sound.defeat();
+            } else {
+                sound.draw();
+            }
+        }, 400);
+        return () => clearTimeout(id);
+    }, [phase]);
+
+    // Battle stats
     const stats = useMemo(() => {
-        const p = turns.filter(t => t.attacker === 'player');
-        const o = turns.filter(t => t.attacker === 'opponent');
+        const p    = turns.filter(t => t.attacker === 'player');
+        const o    = turns.filter(t => t.attacker === 'opponent');
         const best = (arr) => arr.reduce((b, t) => t.damage_dealt > (b?.damage_dealt ?? 0) ? t : b, null);
         return {
             totalTurns:          turns.length,
@@ -354,12 +407,13 @@ export default function Show({ battle }) {
             return;
         }
 
-        const t = turns[turnIdx];
+        const t               = turns[turnIdx];
         const attackerIsPlayer = t.attacker === 'player';
 
         later(() => {
             setPlayerAnim(attackerIsPlayer ? 'battle-lunge-right' : '');
             setOpponentAnim(!attackerIsPlayer ? 'battle-lunge-left' : '');
+            if (t.damage_dealt > 0) sound.attack();
         }, ATTACK_MS);
 
         later(() => {
@@ -367,8 +421,18 @@ export default function Show({ battle }) {
             if (!attackerIsPlayer && t.damage_dealt > 0) setPlayerAnim('battle-hit');
             setPlayerHp(t.player_hp_remaining);
             setOpponentHp(t.opponent_hp_remaining);
-            if (t.player_hp_remaining <= 0)   setPlayerFainted(true);
+            if (t.player_hp_remaining <= 0)  setPlayerFainted(true);
             if (t.opponent_hp_remaining <= 0) setOpponentFainted(true);
+
+            if (t.damage_dealt > 0) {
+                const eff = t.effectiveness;
+                if (eff === 'super-effective' || eff === 'double-super-effective') {
+                    sound.superEffective();
+                } else if (eff !== 'immune') {
+                    sound.hit();
+                }
+                if (t.is_critical) sound.critical();
+            }
         }, HIT_MS);
 
         later(() => {
@@ -409,8 +473,8 @@ export default function Show({ battle }) {
         <AuthenticatedLayout
             header={
                 <div className="flex items-center gap-3">
-                    <Link href={route('battles.index')} className="text-sm text-gray-400 hover:text-gray-600">
-                        ← Histórico
+                    <Link href={route('battles.index')} className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600">
+                        <ChevronLeft className="w-4 h-4" /> Histórico
                     </Link>
                     <span className="text-gray-300">/</span>
                     <h2 className="text-xl font-semibold text-gray-800">Batalha #{battle.id}</h2>
@@ -423,7 +487,6 @@ export default function Show({ battle }) {
             <div className="py-6">
                 <div className="mx-auto max-w-lg px-4">
 
-                    {/* Arena */}
                     <Arena
                         player={player} opponent={opponent}
                         playerHp={playerHp} opponentHp={opponentHp}
@@ -432,44 +495,39 @@ export default function Show({ battle }) {
                         phase={phase} turnIdx={turnIdx} totalTurns={turns.length}
                     />
 
-                    {/* Live log */}
                     {!finished && (
                         <div className="mt-3">
                             <LiveLog turns={turns} currentIdx={turnIdx} />
                         </div>
                     )}
 
-                    {/* Controls */}
                     <div className="mt-3 flex justify-center gap-3">
                         {phase === 'ready' && (
                             <button
                                 onClick={startReplay}
-                                className="rounded-xl bg-indigo-600 px-8 py-3 text-base font-bold text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95"
+                                className="flex items-center gap-2 font-pixel text-[10px] rounded-xl bg-red-600 px-8 py-3 text-white hover:bg-red-700 shadow-lg transition-all active:scale-95"
                             >
-                                ▶ Ver Batalha
+                                <Play className="w-4 h-4" /> VER BATALHA
                             </button>
                         )}
                         {phase === 'playing' && (
-                            <>
-                                <button
-                                    onClick={skipToEnd}
-                                    className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
-                                >
-                                    ⏩ Pular
-                                </button>
-                            </>
+                            <button
+                                onClick={skipToEnd}
+                                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                <ChevronsRight className="w-4 h-4" /> Pular
+                            </button>
                         )}
                         {finished && (
                             <button
                                 onClick={startReplay}
-                                className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shadow-sm"
+                                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shadow-sm"
                             >
-                                ▶ Rever animação
+                                <Play className="w-4 h-4" /> Rever animação
                             </button>
                         )}
                     </div>
 
-                    {/* Result panel — only when finished */}
                     {finished && <ResultPanel battle={battle} stats={stats} />}
                 </div>
             </div>
@@ -479,10 +537,14 @@ export default function Show({ battle }) {
 
 function ResultBadge({ result }) {
     const map = {
-        win:  { label: '🏆 Vitória', cls: 'bg-yellow-100 text-yellow-700' },
-        loss: { label: '💀 Derrota', cls: 'bg-red-100 text-red-600' },
-        draw: { label: '🤝 Empate',  cls: 'bg-gray-100 text-gray-600' },
+        win:  { label: 'Vitória', cls: 'bg-yellow-100 text-yellow-700', Icon: Trophy },
+        loss: { label: 'Derrota', cls: 'bg-red-100 text-red-600',       Icon: Skull  },
+        draw: { label: 'Empate',  cls: 'bg-gray-100 text-gray-600',     Icon: Handshake },
     };
-    const { label, cls } = map[result] ?? map.draw;
-    return <span className={`text-xs font-bold px-3 py-1 rounded-full ${cls}`}>{label}</span>;
+    const { label, cls, Icon } = map[result] ?? map.draw;
+    return (
+        <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${cls}`}>
+            <Icon className="w-3.5 h-3.5" /> {label}
+        </span>
+    );
 }

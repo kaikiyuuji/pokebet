@@ -1,8 +1,23 @@
 import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import { Zap, Swords, ScrollText, Coins, ChevronDown } from 'lucide-react';
+
+function NavItem({ href, active, children }) {
+    return (
+        <Link
+            href={href}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-semibold transition-colors ${
+                active
+                    ? 'bg-red-900 text-yellow-300'
+                    : 'text-red-100 hover:bg-red-700 hover:text-white'
+            }`}
+        >
+            {children}
+        </Link>
+    );
+}
 
 export default function AuthenticatedLayout({ header, children }) {
     const { auth } = usePage().props;
@@ -10,54 +25,55 @@ export default function AuthenticatedLayout({ header, children }) {
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white shadow-sm">
+        <div className="min-h-screen bg-slate-100">
+            <nav className="border-b-4 border-red-900 bg-red-700 shadow-lg">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
+                    <div className="flex h-14 justify-between">
                         {/* Left: Logo + nav links */}
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-6">
                             <Link href={route('dashboard')} className="flex items-center gap-2 shrink-0">
-                                <span className="text-2xl">⚡</span>
-                                <span className="font-bold text-gray-800 text-sm hidden sm:block">PokéBet</span>
+                                <Zap className="w-5 h-5 text-yellow-300" />
+                                <span className="font-pixel text-yellow-300 text-[10px] hidden sm:block tracking-tight">
+                                    PokéBet
+                                </span>
                             </Link>
 
-                            <div className="hidden space-x-6 sm:ms-10 sm:flex sm:-my-px">
-                                <NavLink href={route('dashboard')} active={route().current('dashboard')}>
+                            <div className="hidden sm:flex sm:items-center sm:gap-1">
+                                <NavItem href={route('dashboard')} active={route().current('dashboard')}>
                                     Dashboard
-                                </NavLink>
-                                <NavLink href={route('battle.new')} active={route().current('battle.new') || route().current('battle.show')}>
-                                    ⚔️ Batalha
-                                </NavLink>
-                                <NavLink href={route('battles.index')} active={route().current('battles.*')}>
-                                    📜 Histórico
-                                </NavLink>
+                                </NavItem>
+                                <NavItem
+                                    href={route('battle.new')}
+                                    active={route().current('battle.new') || route().current('battle.show')}
+                                >
+                                    <Swords className="w-3.5 h-3.5" /> Batalha
+                                </NavItem>
+                                <NavItem href={route('battles.index')} active={route().current('battles.*')}>
+                                    <ScrollText className="w-3.5 h-3.5" /> Histórico
+                                </NavItem>
                             </div>
                         </div>
 
                         {/* Right: coins + user menu */}
-                        <div className="hidden sm:flex sm:items-center sm:gap-4">
-                            {/* Coins badge */}
-                            <div className="flex items-center gap-1.5 rounded-full bg-yellow-50 border border-yellow-200 px-3 py-1 text-sm font-semibold text-yellow-700">
-                                <span>🪙</span>
+                        <div className="hidden sm:flex sm:items-center sm:gap-3">
+                            <div className="flex items-center gap-1.5 rounded border-2 border-yellow-400 bg-yellow-400 bg-opacity-20 px-3 py-1 text-sm font-bold text-yellow-300">
+                                <Coins className="w-4 h-4" />
                                 <span>{user.coins.toLocaleString('pt-BR')}</span>
                             </div>
 
-                            {/* User dropdown */}
                             <Dropdown>
                                 <Dropdown.Trigger>
                                     <button
                                         type="button"
-                                        className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                                        className="flex items-center gap-2 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                                     >
                                         <img
                                             src={user.avatar_url}
                                             alt={user.name}
-                                            className="h-8 w-8 rounded-full object-cover border border-gray-200"
+                                            className="h-7 w-7 rounded-full object-cover border-2 border-red-300"
                                         />
-                                        <span className="text-sm font-medium text-gray-700">{user.name}</span>
-                                        <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
+                                        <span className="text-sm font-medium text-red-100">{user.name}</span>
+                                        <ChevronDown className="h-4 w-4 text-red-300" />
                                     </button>
                                 </Dropdown.Trigger>
 
@@ -74,7 +90,7 @@ export default function AuthenticatedLayout({ header, children }) {
                         <div className="-me-2 flex items-center sm:hidden">
                             <button
                                 onClick={() => setShowingNavigationDropdown((prev) => !prev)}
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none"
+                                className="inline-flex items-center justify-center rounded-md p-2 text-red-200 hover:bg-red-600 focus:outline-none"
                             >
                                 <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path
@@ -94,26 +110,26 @@ export default function AuthenticatedLayout({ header, children }) {
                 </div>
 
                 {/* Mobile menu */}
-                <div className={(showingNavigationDropdown ? 'block' : 'hidden') + ' sm:hidden'}>
-                    <div className="space-y-1 pb-3 pt-2">
+                <div className={(showingNavigationDropdown ? 'block' : 'hidden') + ' sm:hidden border-t border-red-800'}>
+                    <div className="space-y-1 px-3 pb-3 pt-2">
                         <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>
                             Dashboard
                         </ResponsiveNavLink>
                         <ResponsiveNavLink href={route('battle.new')} active={route().current('battle.new') || route().current('battle.show')}>
-                            ⚔️ Batalha
+                            Batalha
                         </ResponsiveNavLink>
                         <ResponsiveNavLink href={route('battles.index')} active={route().current('battles.*')}>
-                            📜 Histórico
+                            Histórico
                         </ResponsiveNavLink>
                     </div>
 
-                    <div className="border-t border-gray-200 pb-1 pt-4">
+                    <div className="border-t border-red-800 pb-1 pt-4">
                         <div className="px-4 flex items-center gap-3">
-                            <img src={user.avatar_url} alt={user.name} className="h-10 w-10 rounded-full object-cover border border-gray-200" />
+                            <img src={user.avatar_url} alt={user.name} className="h-10 w-10 rounded-full object-cover border-2 border-red-300" />
                             <div>
-                                <div className="text-base font-medium text-gray-800">{user.name}</div>
-                                <div className="text-sm text-gray-500 flex items-center gap-1">
-                                    <span>🪙</span>
+                                <div className="text-base font-medium text-red-100">{user.name}</div>
+                                <div className="text-sm text-yellow-300 flex items-center gap-1">
+                                    <Coins className="w-3.5 h-3.5" />
                                     <span>{user.coins.toLocaleString('pt-BR')}</span>
                                 </div>
                             </div>
@@ -130,8 +146,8 @@ export default function AuthenticatedLayout({ header, children }) {
             </nav>
 
             {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <header className="bg-white shadow-sm border-b border-gray-200">
+                    <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
                         {header}
                     </div>
                 </header>

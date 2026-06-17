@@ -34,7 +34,36 @@
     50%       { opacity: 0.7; }
 }
 
+@keyframes poke-bounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-4px); }
+}
+
 .battle-lunge-right { animation: battle-lunge-right 0.4s ease-out; }
 .battle-lunge-left  { animation: battle-lunge-left  0.4s ease-out; }
 .battle-hit         { animation: battle-hit 0.6s ease-in-out; }
 .battle-faint       { animation: battle-faint 0.8s ease-in forwards; }
+.poke-bounce        { animation: poke-bounce 0.6s ease-in-out; }
+
+/* ── Pokémon theme ─────────────────────────────────────────────── */
+
+.font-pixel {
+    font-family: 'Press Start 2P', monospace;
+    line-height: 1.8;
+}
+
+.battle-arena-bg {
+    background: linear-gradient(
+        180deg,
+        #a8d8ea 0%,
+        #c5eef8 42%,
+        #7ec48b 42%,
+        #4a8a5a 100%
+    );
+}
+
+.poke-panel {
+    border: 3px solid #1a1a2e;
+    box-shadow: 4px 4px 0 #1a1a2e;
+    border-radius: 8px;
+}

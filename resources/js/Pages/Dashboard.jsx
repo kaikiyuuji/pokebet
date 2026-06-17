@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { Coins, Swords, Trophy, Layers, ShoppingBag } from 'lucide-react';
 
-function StatCard({ icon, label, value, color = 'indigo' }) {
+function StatCard({ Icon, label, value, color = 'indigo' }) {
     const colors = {
         yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
         indigo: 'bg-indigo-50 border-indigo-200 text-indigo-700',
@@ -11,21 +12,21 @@ function StatCard({ icon, label, value, color = 'indigo' }) {
 
     return (
         <div className={`rounded-xl border p-5 ${colors[color]}`}>
-            <div className="text-2xl mb-1">{icon}</div>
+            <Icon className="w-6 h-6 mb-1 opacity-70" />
             <div className="text-2xl font-bold">{value}</div>
             <div className="text-sm mt-0.5 opacity-80">{label}</div>
         </div>
     );
 }
 
-function ActionCard({ icon, title, description, href, disabled }) {
+function ActionCard({ Icon, title, description, href, disabled }) {
     const inner = (
         <div className={`flex items-start gap-4 rounded-xl border p-5 transition-all duration-150 ${
             disabled
                 ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                : 'border-indigo-100 bg-indigo-50 hover:bg-indigo-100 hover:shadow-sm cursor-pointer'
+                : 'border-red-100 bg-red-50 hover:bg-red-100 hover:shadow-sm cursor-pointer'
         }`}>
-            <span className="text-3xl">{icon}</span>
+            <Icon className={`w-8 h-8 shrink-0 ${disabled ? 'text-gray-400' : 'text-red-600'}`} />
             <div>
                 <p className="font-semibold text-gray-800">{title}</p>
                 <p className="text-sm text-gray-500 mt-0.5">{description}</p>
@@ -49,7 +50,7 @@ export default function Dashboard() {
                     <img
                         src={user.avatar_url}
                         alt={user.name}
-                        className="h-10 w-10 rounded-full object-cover border-2 border-indigo-200"
+                        className="h-10 w-10 rounded-full object-cover border-2 border-red-200"
                     />
                     <div>
                         <h2 className="text-xl font-semibold text-gray-800">
@@ -67,23 +68,23 @@ export default function Dashboard() {
             <div className="py-10">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                        <StatCard icon="🪙" label="Moedas" value={user.coins.toLocaleString('pt-BR')} color="yellow" />
-                        <StatCard icon="⚔️" label="Batalhas" value="—" color="indigo" />
-                        <StatCard icon="🏆" label="Vitórias" value="—" color="green" />
-                        <StatCard icon="🎴" label="Pokémon" value="—" color="red" />
+                        <StatCard Icon={Coins}  label="Moedas"   value={user.coins.toLocaleString('pt-BR')} color="yellow" />
+                        <StatCard Icon={Swords} label="Batalhas" value="—" color="indigo" />
+                        <StatCard Icon={Trophy} label="Vitórias" value="—" color="green" />
+                        <StatCard Icon={Layers} label="Pokémon"  value="—" color="red" />
                     </div>
 
                     <div className="rounded-xl border border-gray-200 bg-white p-6">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">Começar</h3>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <ActionCard
-                                icon="⚔️"
+                                Icon={Swords}
                                 title="Nova Batalha"
                                 description="Escolha um Pokémon e batalhe"
                                 href={route('battle.new')}
                             />
-                            <ActionCard icon="🏪" title="Loja" description="Compre novos Pokémon" disabled />
-                            <ActionCard icon="🎴" title="Coleção" description="Veja seus Pokémon" disabled />
+                            <ActionCard Icon={ShoppingBag} title="Loja" description="Compre novos Pokémon" disabled />
+                            <ActionCard Icon={Layers} title="Coleção" description="Veja seus Pokémon" disabled />
                         </div>
                     </div>
                 </div>

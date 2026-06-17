@@ -23,6 +23,7 @@ class BattleHistoryController extends Controller
                 'id'            => $b->id,
                 'result'        => $b->result,
                 'coins_awarded' => $b->coins_awarded,
+                'luck_tier'     => $b->luck_tier,
                 'created_at'    => $b->created_at->format('d/m/Y H:i'),
                 'player' => [
                     'level'   => $b->player_level,

@@ -2,8 +2,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { useState, useMemo } from 'react';
 import { getTypeStyle } from '@/lib/pokemon';
-
-// ── helpers ─────────────────────────────────────────────────────────────────
+import {
+    Trophy, Skull, Handshake, Coins, Swords, Sword, Bot,
+    ClipboardList, ChevronLeft, Star,
+} from 'lucide-react';
 
 function TypeBadge({ slug, name }) {
     if (!slug) return null;
@@ -16,20 +18,22 @@ function TypeBadge({ slug, name }) {
 }
 
 function ResultBanner({ result, coinsAwarded }) {
+    const isLoss = result === 'loss';
     const map = {
-        win:  { label: 'Vitória',  emoji: '🏆', from: 'from-green-500',  to: 'to-emerald-600' },
-        loss: { label: 'Derrota',  emoji: '💀', from: 'from-red-500',    to: 'to-rose-700'    },
-        draw: { label: 'Empate',   emoji: '🤝', from: 'from-yellow-400', to: 'to-amber-500'   },
+        win:  { label: 'Vitória', Icon: Trophy,    from: 'from-green-500',  to: 'to-emerald-600' },
+        loss: { label: 'Derrota', Icon: Skull,     from: 'from-red-500',    to: 'to-rose-700'    },
+        draw: { label: 'Empate',  Icon: Handshake, from: 'from-yellow-400', to: 'to-amber-500'   },
     };
-    const { label, emoji, from, to } = map[result] ?? { label: result, emoji: '❓', from: 'from-gray-400', to: 'to-gray-500' };
+    const { label, Icon, from, to } = map[result] ?? { label: result, Icon: Swords, from: 'from-gray-400', to: 'to-gray-500' };
 
     return (
         <div className={`rounded-xl bg-gradient-to-r ${from} ${to} p-5 text-white flex items-center gap-4`}>
-            <span className="text-4xl">{emoji}</span>
+            <Icon className="w-10 h-10 opacity-90 shrink-0" />
             <div>
                 <p className="text-xl font-extrabold tracking-wide">{label}</p>
-                <p className="text-sm opacity-90 mt-0.5 flex items-center gap-1">
-                    <span>🪙</span> <span>{coinsAwarded} moedas ganhas</span>
+                <p className="text-sm opacity-90 mt-0.5 flex items-center gap-1.5">
+                    <Coins className="w-4 h-4" />
+                    <span>{isLoss ? '-' : '+'}{coinsAwarded} moedas</span>
                 </p>
             </div>
         </div>
@@ -45,20 +49,15 @@ function StatCard({ label, value }) {
     );
 }
 
-function HpBar({ current, max, color = 'bg-green-500' }) {
-    const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
+function HpBar({ current, max }) {
+    const pct      = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
     const barColor = pct > 50 ? 'bg-green-500' : pct > 20 ? 'bg-yellow-400' : 'bg-red-500';
     return (
         <div className="flex items-center gap-2">
             <div className="flex-1 h-2 rounded-full bg-gray-200">
-                <div
-                    className={`h-2 rounded-full transition-all ${barColor}`}
-                    style={{ width: `${pct}%` }}
-                />
+                <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-xs text-gray-500 w-20 text-right tabular-nums">
-                {current}/{max}
-            </span>
+            <span className="text-xs text-gray-500 w-20 text-right tabular-nums">{current}/{max}</span>
         </div>
     );
 }
@@ -83,37 +82,34 @@ function EffLabel({ label }) {
     );
 }
 
-// ── main component ────────────────────────────────────────────────────────────
-
 export default function Log({ battle }) {
     const [filter, setFilter] = useState('all');
 
     const stats = useMemo(() => {
-        const turns = battle.turns;
-        const playerTurns = turns.filter(t => t.attacker === 'player');
+        const turns        = battle.turns;
+        const playerTurns  = turns.filter(t => t.attacker === 'player');
         const opponentTurns = turns.filter(t => t.attacker === 'opponent');
-
-        const bestMove = (arr) => arr.reduce((best, t) => (!best || t.damage_dealt > best.damage_dealt ? t : best), null);
+        const bestMove     = (arr) => arr.reduce((best, t) => (!best || t.damage_dealt > best.damage_dealt ? t : best), null);
 
         return {
-            totalTurns: turns.length,
-            playerDmg: playerTurns.reduce((s, t) => s + t.damage_dealt, 0),
-            opponentDmg: opponentTurns.reduce((s, t) => s + t.damage_dealt, 0),
-            playerCrits: playerTurns.filter(t => t.is_critical).length,
+            totalTurns:    turns.length,
+            playerDmg:     playerTurns.reduce((s, t) => s + t.damage_dealt, 0),
+            opponentDmg:   opponentTurns.reduce((s, t) => s + t.damage_dealt, 0),
+            playerCrits:   playerTurns.filter(t => t.is_critical).length,
             opponentCrits: opponentTurns.filter(t => t.is_critical).length,
-            playerBest: bestMove(playerTurns),
-            opponentBest: bestMove(opponentTurns),
+            playerBest:    bestMove(playerTurns),
+            opponentBest:  bestMove(opponentTurns),
         };
     }, [battle.turns]);
 
     const visibleTurns = useMemo(() => {
-        if (filter === 'player') return battle.turns.filter(t => t.attacker === 'player');
+        if (filter === 'player')   return battle.turns.filter(t => t.attacker === 'player');
         if (filter === 'opponent') return battle.turns.filter(t => t.attacker === 'opponent');
         if (filter === 'critical') return battle.turns.filter(t => t.is_critical);
         return battle.turns;
     }, [battle.turns, filter]);
 
-    const playerName = battle.player.pokemon.name;
+    const playerName   = battle.player.pokemon.name;
     const opponentName = battle.opponent.pokemon.name;
 
     return (
@@ -121,21 +117,24 @@ export default function Log({ battle }) {
             header={
                 <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800">📋 Log de Batalha #{battle.id}</h2>
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <ClipboardList className="w-5 h-5 text-gray-500" />
+                            Log de Batalha #{battle.id}
+                        </h2>
                         <p className="text-xs text-gray-400 mt-0.5">{battle.created_at} · seed: {battle.random_seed}</p>
                     </div>
                     <div className="flex gap-2">
                         <Link
                             href={route('battles.index')}
-                            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                            className="flex items-center gap-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                         >
-                            ← Histórico
+                            <ChevronLeft className="w-4 h-4" /> Histórico
                         </Link>
                         <Link
                             href={route('battle.new')}
-                            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+                            className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
                         >
-                            ⚔️ Nova Batalha
+                            <Swords className="w-4 h-4" /> Nova Batalha
                         </Link>
                     </div>
                 </div>
@@ -146,7 +145,6 @@ export default function Log({ battle }) {
             <div className="py-8 px-4">
                 <div className="mx-auto max-w-5xl space-y-6">
 
-                    {/* Result banner */}
                     <ResultBanner result={battle.result} coinsAwarded={battle.coins_awarded} />
 
                     {/* Combatants */}
@@ -160,6 +158,7 @@ export default function Log({ battle }) {
                                     src={side.pokemon.sprite}
                                     alt={side.pokemon.name}
                                     className="w-16 h-16 object-contain shrink-0"
+                                    style={{ imageRendering: 'pixelated' }}
                                 />
                                 <div className="min-w-0 flex-1">
                                     <p className="text-[10px] font-bold uppercase text-gray-400 mb-1">{label}</p>
@@ -180,18 +179,18 @@ export default function Log({ battle }) {
 
                     {/* Stats grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <StatCard label="Turnos" value={stats.totalTurns} />
-                        <StatCard label="Dano (você)" value={stats.playerDmg} />
+                        <StatCard label="Turnos"          value={stats.totalTurns} />
+                        <StatCard label="Dano (você)"     value={stats.playerDmg} />
                         <StatCard label="Dano (oponente)" value={stats.opponentDmg} />
-                        <StatCard label="Críticos" value={`${stats.playerCrits} / ${stats.opponentCrits}`} />
+                        <StatCard label="Críticos"        value={`${stats.playerCrits} / ${stats.opponentCrits}`} />
                     </div>
 
                     {/* Best moves */}
                     {(stats.playerBest || stats.opponentBest) && (
                         <div className="grid grid-cols-2 gap-4">
                             {[
-                                { label: 'Seu melhor golpe', turn: stats.playerBest },
-                                { label: 'Melhor golpe do oponente', turn: stats.opponentBest },
+                                { label: 'Seu melhor golpe',           turn: stats.playerBest },
+                                { label: 'Melhor golpe do oponente',   turn: stats.opponentBest },
                             ].map(({ label, turn }) => turn && (
                                 <div key={label} className="bg-white rounded-xl border border-gray-200 p-4">
                                     <p className="text-[10px] font-bold uppercase text-gray-400 mb-2">{label}</p>
@@ -202,10 +201,14 @@ export default function Log({ battle }) {
                                             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1">STAB</span>
                                         )}
                                         {turn.is_critical && (
-                                            <span className="text-[10px] font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded px-1">★ Crítico</span>
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded px-1">
+                                                <Star className="w-2.5 h-2.5" /> Crítico
+                                            </span>
                                         )}
                                     </div>
-                                    <p className="text-2xl font-extrabold text-gray-800 mt-1">{turn.damage_dealt} <span className="text-sm font-normal text-gray-400">de dano</span></p>
+                                    <p className="text-2xl font-extrabold text-gray-800 mt-1">
+                                        {turn.damage_dealt} <span className="text-sm font-normal text-gray-400">de dano</span>
+                                    </p>
                                 </div>
                             ))}
                         </div>
@@ -218,9 +221,9 @@ export default function Log({ battle }) {
                             <div className="flex gap-1.5 flex-wrap">
                                 {[
                                     { value: 'all',      label: 'Todos' },
-                                    { value: 'player',   label: `${playerName}` },
-                                    { value: 'opponent', label: `${opponentName}` },
-                                    { value: 'critical', label: '★ Críticos' },
+                                    { value: 'player',   label: playerName },
+                                    { value: 'opponent', label: opponentName },
+                                    { value: 'critical', label: 'Críticos' },
                                 ].map(opt => (
                                     <button
                                         key={opt.value}
@@ -228,7 +231,7 @@ export default function Log({ battle }) {
                                         className={[
                                             'px-3 py-1 rounded-full text-xs font-medium border transition-colors capitalize',
                                             filter === opt.value
-                                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                                ? 'bg-red-600 text-white border-red-600'
                                                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
                                         ].join(' ')}
                                     >
@@ -247,13 +250,18 @@ export default function Log({ battle }) {
                                         <th className="px-4 py-2 text-left">Golpe</th>
                                         <th className="px-4 py-2 text-right">Dano</th>
                                         <th className="px-4 py-2 text-left">Efetividade</th>
-                                        <th className="px-4 py-2 text-right">HP 🗡️</th>
-                                        <th className="px-4 py-2 text-right">HP 👾</th>
+                                        <th className="px-4 py-2 text-right">
+                                            <Sword className="w-3 h-3 inline" /> HP
+                                        </th>
+                                        <th className="px-4 py-2 text-right">
+                                            <Bot className="w-3 h-3 inline" /> HP
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {visibleTurns.map((t) => {
                                         const isPlayer = t.attacker === 'player';
+                                        const AttIcon  = isPlayer ? Sword : Bot;
                                         return (
                                             <tr
                                                 key={t.turn_number}
@@ -261,7 +269,8 @@ export default function Log({ battle }) {
                                             >
                                                 <td className="px-4 py-2.5 text-gray-400 tabular-nums">{t.turn_number}</td>
                                                 <td className="px-4 py-2.5">
-                                                    <span className={`font-medium capitalize ${isPlayer ? 'text-indigo-700' : 'text-rose-600'}`}>
+                                                    <span className={`flex items-center gap-1.5 font-medium capitalize ${isPlayer ? 'text-red-600' : 'text-slate-600'}`}>
+                                                        <AttIcon className="w-3.5 h-3.5" />
                                                         {isPlayer ? playerName : opponentName}
                                                     </span>
                                                 </td>
@@ -273,7 +282,9 @@ export default function Log({ battle }) {
                                                             <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1">STAB</span>
                                                         )}
                                                         {t.is_critical && (
-                                                            <span className="text-[9px] font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded px-1">★</span>
+                                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded px-1">
+                                                                <Star className="w-2.5 h-2.5" />
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -283,10 +294,10 @@ export default function Log({ battle }) {
                                                 <td className="px-4 py-2.5">
                                                     <EffLabel label={t.effectiveness} />
                                                 </td>
-                                                <td className="px-4 py-2.5 text-right tabular-nums text-indigo-700 font-medium">
+                                                <td className="px-4 py-2.5 text-right tabular-nums text-red-600 font-medium">
                                                     {t.player_hp_remaining}
                                                 </td>
-                                                <td className="px-4 py-2.5 text-right tabular-nums text-rose-600 font-medium">
+                                                <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 font-medium">
                                                     {t.opponent_hp_remaining}
                                                 </td>
                                             </tr>
@@ -301,7 +312,7 @@ export default function Log({ battle }) {
                         </div>
                     </div>
 
-                    {/* HP progression mini-chart (text-based) */}
+                    {/* HP Final */}
                     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
                         <h3 className="font-bold text-gray-800 text-sm">HP Final</h3>
                         {battle.turns.length > 0 && (() => {
@@ -310,14 +321,14 @@ export default function Log({ battle }) {
                                 <div className="space-y-3">
                                     <div>
                                         <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                            <span className="capitalize font-medium text-indigo-700">{playerName}</span>
+                                            <span className="capitalize font-medium text-red-600">{playerName}</span>
                                             <span>{last.player_hp_remaining} / {battle.player.max_hp}</span>
                                         </div>
                                         <HpBar current={last.player_hp_remaining} max={battle.player.max_hp} />
                                     </div>
                                     <div>
                                         <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                            <span className="capitalize font-medium text-rose-600">{opponentName}</span>
+                                            <span className="capitalize font-medium text-slate-600">{opponentName}</span>
                                             <span>{last.opponent_hp_remaining} / {battle.opponent.max_hp}</span>
                                         </div>
                                         <HpBar current={last.opponent_hp_remaining} max={battle.opponent.max_hp} />

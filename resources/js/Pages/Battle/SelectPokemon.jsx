@@ -2,8 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import { Search, Swords, Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
-// ── Type Badge ────────────────────────────────────────────────────────────────
 function TypeBadge({ type, size = 'sm' }) {
     if (!type) return null;
     const { bg, text } = getTypeStyle(type.slug);
@@ -13,9 +13,8 @@ function TypeBadge({ type, size = 'sm' }) {
     return <span className={cls}>{type.name}</span>;
 }
 
-// ── Pokémon Card ──────────────────────────────────────────────────────────────
 function PokemonCard({ pokemon, selected, onSelect }) {
-    const { ring } = pokemon.primary_type ? getTypeStyle(pokemon.primary_type.slug) : { ring: 'ring-indigo-400' };
+    const { ring } = pokemon.primary_type ? getTypeStyle(pokemon.primary_type.slug) : { ring: 'ring-red-400' };
 
     return (
         <button
@@ -25,14 +24,14 @@ function PokemonCard({ pokemon, selected, onSelect }) {
                 group relative flex flex-col items-center gap-1 rounded-xl border-2 bg-white p-3 text-center
                 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 cursor-pointer
                 ${selected
-                    ? `border-indigo-500 shadow-lg shadow-indigo-100 ring-2 ${ring}`
+                    ? `border-red-500 shadow-lg shadow-red-100 ring-2 ${ring}`
                     : 'border-gray-100 hover:border-gray-300'
                 }
             `}
         >
             {selected && (
-                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-bold shadow">
-                    ✓
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow">
+                    <Check className="w-3 h-3" />
                 </span>
             )}
 
@@ -45,12 +44,13 @@ function PokemonCard({ pokemon, selected, onSelect }) {
                     src={pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png'}
                     alt={pokemon.name}
                     className="h-full w-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-150"
+                    style={{ imageRendering: 'pixelated' }}
                     loading="lazy"
                     onError={(e) => { e.target.src = '/images/pokemon-placeholder.png'; }}
                 />
             </div>
 
-            <p className="text-sm font-semibold text-gray-800 leading-tight">{pokemon.name}</p>
+            <p className="text-sm font-semibold text-gray-800 leading-tight capitalize">{pokemon.name}</p>
 
             <div className="flex gap-1 flex-wrap justify-center">
                 <TypeBadge type={pokemon.primary_type} size="xs" />
@@ -64,7 +64,6 @@ function PokemonCard({ pokemon, selected, onSelect }) {
     );
 }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
 function Pagination({ links }) {
     return (
         <nav className="flex flex-wrap justify-center gap-1 mt-6">
@@ -76,7 +75,7 @@ function Pagination({ links }) {
                         preserveScroll
                         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                             link.active
-                                ? 'bg-indigo-600 text-white'
+                                ? 'bg-red-600 text-white'
                                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                         dangerouslySetInnerHTML={{ __html: link.label }}
@@ -91,21 +90,21 @@ function Pagination({ links }) {
     );
 }
 
-// ── Selection Bottom Bar ──────────────────────────────────────────────────────
 function SelectionBar({ selected, onClear, onStart, processing }) {
     if (!selected) return null;
 
     return (
-        <div className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-gray-200 shadow-2xl">
+        <div className="fixed bottom-0 inset-x-0 z-50 bg-white border-t-4 border-red-600 shadow-2xl">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <img
                         src={selected.sprite ?? selected.sprite_front ?? '/images/pokemon-placeholder.png'}
                         alt={selected.name}
                         className="h-12 w-12 object-contain"
+                        style={{ imageRendering: 'pixelated' }}
                     />
                     <div>
-                        <p className="font-semibold text-gray-800">{selected.name}</p>
+                        <p className="font-semibold text-gray-800 capitalize">{selected.name}</p>
                         <div className="flex gap-1 mt-0.5">
                             <TypeBadge type={selected.primary_type} size="xs" />
                             <TypeBadge type={selected.secondary_type} size="xs" />
@@ -117,17 +116,18 @@ function SelectionBar({ selected, onClear, onStart, processing }) {
                     <button
                         type="button"
                         onClick={onClear}
-                        className="text-sm text-gray-500 hover:text-gray-700"
+                        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
                     >
-                        Cancelar
+                        <X className="w-4 h-4" /> Cancelar
                     </button>
                     <button
                         type="button"
                         onClick={onStart}
                         disabled={processing}
-                        className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow"
+                        className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors shadow"
                     >
-                        {processing ? 'Iniciando...' : '⚔️ Iniciar Batalha'}
+                        <Swords className="w-4 h-4" />
+                        {processing ? 'Iniciando...' : 'Iniciar Batalha'}
                     </button>
                 </div>
             </div>
@@ -135,14 +135,12 @@ function SelectionBar({ selected, onClear, onStart, processing }) {
     );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SelectPokemon({ pokemons, types, filters }) {
-    const [selected, setSelected] = useState(null);
-    const [search, setSearch] = useState(filters.search ?? '');
-    const searchTimer = useRef(null);
+    const [selected, setSelected]   = useState(null);
+    const [search, setSearch]       = useState(filters.search ?? '');
+    const searchTimer               = useRef(null);
     const [processing, setProcessing] = useState(false);
 
-    // Debounced search
     useEffect(() => {
         if (search === (filters.search ?? '')) return;
 
@@ -180,7 +178,9 @@ export default function SelectPokemon({ pokemons, types, filters }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-800">⚔️ Nova Batalha</h2>
+                    <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                        <Swords className="w-5 h-5 text-red-600" /> Nova Batalha
+                    </h2>
                     <p className="text-sm text-gray-500 mt-0.5">Escolha seu Pokémon</p>
                 </div>
             }
@@ -192,13 +192,16 @@ export default function SelectPokemon({ pokemons, types, filters }) {
 
                     {/* Search + Type Filters */}
                     <div className="mb-5 space-y-3">
-                        <input
-                            type="text"
-                            placeholder="Buscar Pokémon..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                        />
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar Pokémon..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-2.5 text-sm shadow-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400"
+                            />
+                        </div>
 
                         <div className="flex flex-wrap gap-2">
                             <TypeFilterButton
@@ -218,17 +221,15 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                         </div>
                     </div>
 
-                    {/* Results count */}
                     {!isEmpty && (
                         <p className="text-xs text-gray-400 mb-3">
                             {pokemons.total} Pokémon encontrados — página {pokemons.current_page}/{pokemons.last_page}
                         </p>
                     )}
 
-                    {/* Empty state */}
                     {isEmpty && (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
-                            <span className="text-6xl mb-4">🔍</span>
+                            <Search className="w-16 h-16 text-gray-200 mb-4" />
                             {pokemons.total === 0 && !filters.search ? (
                                 <>
                                     <p className="text-lg font-semibold text-gray-600">Não foi possível carregar os Pokémon</p>
@@ -243,7 +244,6 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                         </div>
                     )}
 
-                    {/* Pokémon Grid */}
                     {!isEmpty && (
                         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
                             {pokemons.data.map((pokemon) => (
@@ -257,14 +257,12 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                         </div>
                     )}
 
-                    {/* Pagination */}
                     {pokemons.last_page > 1 && (
                         <Pagination links={pokemons.links} />
                     )}
                 </div>
             </div>
 
-            {/* Bottom selection bar */}
             <SelectionBar
                 selected={selected}
                 onClear={() => setSelected(null)}
@@ -286,7 +284,7 @@ function TypeFilterButton({ label, slug, active, onClick }) {
                 active
                     ? style
                         ? `${style.bg} ${style.text} shadow`
-                        : 'bg-indigo-600 text-white shadow'
+                        : 'bg-red-600 text-white shadow'
                     : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
             }`}
         >
