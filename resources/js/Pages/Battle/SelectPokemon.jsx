@@ -178,10 +178,10 @@ export default function SelectPokemon({ pokemons, types, filters }) {
         <AuthenticatedLayout
             header={
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                        <Swords className="w-5 h-5 text-red-600" /> Nova Batalha
+                    <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <Swords className="w-5 h-5 text-red-400" /> Nova Batalha
                     </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Escolha seu Pokémon</p>
+                    <p className="text-sm text-slate-400 mt-0.5">Escolha seu Pokémon</p>
                 </div>
             }
         >
@@ -222,23 +222,23 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                     </div>
 
                     {!isEmpty && (
-                        <p className="text-xs text-gray-400 mb-3">
+                        <p className="text-xs text-slate-500 mb-3">
                             {pokemons.total} Pokémon encontrados — página {pokemons.current_page}/{pokemons.last_page}
                         </p>
                     )}
 
                     {isEmpty && (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
-                            <Search className="w-16 h-16 text-gray-200 mb-4" />
+                            <Search className="w-16 h-16 text-slate-600 mb-4" />
                             {pokemons.total === 0 && !filters.search ? (
                                 <>
-                                    <p className="text-lg font-semibold text-gray-600">Não foi possível carregar os Pokémon</p>
-                                    <p className="text-sm text-gray-400 mt-1">Verifique sua conexão com a internet e tente novamente.</p>
+                                    <p className="text-lg font-semibold text-slate-300">Não foi possível carregar os Pokémon</p>
+                                    <p className="text-sm text-slate-500 mt-1">Verifique sua conexão com a internet e tente novamente.</p>
                                 </>
                             ) : (
                                 <>
-                                    <p className="text-lg font-semibold text-gray-600">Nenhum resultado</p>
-                                    <p className="text-sm text-gray-400 mt-1">Tente outro nome ou tipo</p>
+                                    <p className="text-lg font-semibold text-slate-300">Nenhum resultado</p>
+                                    <p className="text-sm text-slate-500 mt-1">Tente outro nome ou tipo</p>
                                 </>
                             )}
                         </div>

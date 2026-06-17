@@ -29,11 +29,6 @@
     100% { opacity: 0;   transform: translateY(40px); }
 }
 
-@keyframes hp-pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.7; }
-}
-
 @keyframes poke-bounce {
     0%, 100% { transform: translateY(0); }
     50%       { transform: translateY(-4px); }
@@ -52,6 +47,7 @@
     line-height: 1.8;
 }
 
+/* Legacy single-div arena bg */
 .battle-arena-bg {
     background: linear-gradient(
         180deg,
@@ -60,6 +56,19 @@
         #7ec48b 42%,
         #4a8a5a 100%
     );
+}
+
+/* Two-zone arena backgrounds */
+.battle-sky {
+    background: linear-gradient(180deg, #6ec4de 0%, #c5eef8 100%);
+}
+
+.battle-grass {
+    background: linear-gradient(180deg, #7ec48b 0%, #3a7a4a 100%);
+}
+
+.battle-divider {
+    background: linear-gradient(180deg, #c5eef8 0%, #7ec48b 100%);
 }
 
 .poke-panel {

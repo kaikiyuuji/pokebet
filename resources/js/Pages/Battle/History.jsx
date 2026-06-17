@@ -118,7 +118,7 @@ export default function History({ battles }) {
         <AuthenticatedLayout
             header={
                 <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-800">Histórico de Batalhas</h2>
+                    <h2 className="text-xl font-bold text-white">Histórico de Batalhas</h2>
                     <Link
                         href={route('battle.new')}
                         className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
@@ -134,9 +134,9 @@ export default function History({ battles }) {
                 <div className="mx-auto max-w-4xl space-y-4">
                     {battles.data.length === 0 ? (
                         <div className="text-center py-20">
-                            <Swords className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg font-medium">Nenhuma batalha ainda</p>
-                            <p className="text-gray-400 text-sm mt-1">Inicie sua primeira batalha para ver o histórico aqui.</p>
+                            <Swords className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                            <p className="text-slate-400 text-lg font-medium">Nenhuma batalha ainda</p>
+                            <p className="text-slate-500 text-sm mt-1">Inicie sua primeira batalha para ver o histórico aqui.</p>
                             <Link
                                 href={route('battle.new')}
                                 className="mt-6 inline-flex items-center gap-2 rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white hover:bg-red-700"

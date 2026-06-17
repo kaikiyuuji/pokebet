@@ -32,17 +32,16 @@ function effectivenessLabel(eff) {
 }
 
 // ── HP Bar (Pokémon DS style) ──────────────────────────────────────────────────
-function HpBar({ current, max, name, level, side }) {
-    const pct     = max > 0 ? Math.max(0, current) / max : 0;
-    const isRight = side === 'opponent';
+function HpBar({ current, max, name, level }) {
+    const pct = max > 0 ? Math.max(0, current) / max : 0;
 
     return (
-        <div className={`bg-black bg-opacity-60 rounded-lg px-3 py-2 min-w-[148px] ${isRight ? 'text-right' : ''}`}>
-            <div className={`flex items-baseline justify-between mb-1 ${isRight ? 'flex-row-reverse' : ''}`}>
-                <span className="font-pixel text-[8px] text-white leading-none">{name}</span>
-                <span className="font-pixel text-[7px] text-slate-400 leading-none">Lv.{level}</span>
+        <div className="bg-black bg-opacity-70 rounded-lg px-3 py-2 w-44">
+            <div className="flex items-baseline justify-between mb-1">
+                <span className="font-pixel text-[8px] text-white leading-none capitalize truncate max-w-[100px]">{name}</span>
+                <span className="font-pixel text-[7px] text-slate-400 leading-none ml-2 shrink-0">Lv.{level}</span>
             </div>
-            <div className={`flex items-center gap-1.5 ${isRight ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center gap-1.5">
                 <span className="font-pixel text-[7px] text-green-400 shrink-0">HP</span>
                 <div className="flex-1 h-2.5 rounded-sm bg-gray-800 overflow-hidden border border-gray-700">
                     <div
@@ -51,7 +50,7 @@ function HpBar({ current, max, name, level, side }) {
                     />
                 </div>
             </div>
-            <span className={`font-pixel text-[7px] text-slate-400 mt-1 block ${isRight ? 'text-right' : ''}`}>
+            <span className="font-pixel text-[7px] text-slate-400 mt-1 block">
                 {Math.max(0, current)}/{max}
             </span>
         </div>
@@ -103,38 +102,45 @@ function LiveLog({ turns, currentIdx }) {
 }
 
 // ── Arena ──────────────────────────────────────────────────────────────────────
+// Layout: each Pokémon's sprite and HP bar share the same visual zone.
+//   Opponent zone (sky, top): HP info LEFT ←→ sprite RIGHT
+//   Player   zone (grass, bottom): sprite LEFT ←→ HP info RIGHT
 function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAnim, playerFainted, opponentFainted, phase, turnIdx, totalTurns }) {
     return (
-        <div className="rounded-2xl battle-arena-bg p-5 shadow-2xl border-4 border-gray-800 overflow-hidden">
-            {/* Opponent HP */}
-            <div className="flex justify-between items-start mb-1">
-                <HpBar current={opponentHp} max={opponent.max_hp} name={opponent.pokemon.name} level={opponent.level} side="opponent" />
-                <span className="font-pixel text-[8px] text-gray-700 bg-white bg-opacity-60 px-1.5 py-0.5 rounded">
-                    {formatPokedexNumber(opponent.pokemon.pokeapi_id)}
-                </span>
-            </div>
+        <div className="rounded-2xl border-4 border-gray-800 overflow-hidden shadow-2xl">
 
-            {/* Sprites */}
-            <div className="flex items-end justify-between gap-4 py-3 px-2">
-                <PokemonSprite pokemon={player.pokemon} side="player" animClass={playerAnim} fainted={playerFainted} />
-
-                <div className="flex flex-col items-center gap-1 shrink-0">
-                    {phase === 'ready' && (
-                        <span className="font-pixel text-sm text-gray-700 bg-white bg-opacity-70 px-2 py-1 rounded">VS</span>
-                    )}
-                    {phase === 'playing' && (
-                        <span className="font-pixel text-[8px] text-gray-700 bg-white bg-opacity-60 px-2 py-1 rounded tabular-nums">
-                            {turnIdx}/{totalTurns}
-                        </span>
-                    )}
+            {/* ── Opponent zone: sky ───────────────────── */}
+            <div className="battle-sky flex items-end justify-between px-4 pt-4 pb-2 gap-3" style={{ minHeight: '11rem' }}>
+                {/* HP info anchored to top-left */}
+                <div className="self-start mt-1">
+                    <span className="font-pixel text-[6px] text-sky-700 uppercase tracking-widest block mb-1.5">Inimigo</span>
+                    <HpBar current={opponentHp} max={opponent.max_hp} name={opponent.pokemon.name} level={opponent.level} />
                 </div>
-
+                {/* Sprite sits at the bottom of sky zone */}
                 <PokemonSprite pokemon={opponent.pokemon} side="opponent" animClass={opponentAnim} fainted={opponentFainted} />
             </div>
 
-            {/* Player HP */}
-            <div className="flex justify-end mt-1">
-                <HpBar current={playerHp} max={player.max_hp} name={player.pokemon.name} level={player.level} side="player" />
+            {/* ── Divider with VS / turn counter ──────── */}
+            <div className="battle-divider flex items-center justify-center" style={{ height: 28 }}>
+                {phase === 'ready' && (
+                    <span className="font-pixel text-[10px] text-gray-700 bg-white bg-opacity-80 px-3 py-0.5 rounded-full shadow-sm">VS</span>
+                )}
+                {phase === 'playing' && (
+                    <span className="font-pixel text-[8px] text-gray-700 bg-white bg-opacity-80 px-2 py-0.5 rounded-full shadow-sm tabular-nums">
+                        {turnIdx}/{totalTurns}
+                    </span>
+                )}
+            </div>
+
+            {/* ── Player zone: grass ───────────────────── */}
+            <div className="battle-grass flex items-end justify-between px-4 pt-2 pb-4 gap-3" style={{ minHeight: '11rem' }}>
+                {/* Sprite sits at the bottom of grass zone */}
+                <PokemonSprite pokemon={player.pokemon} side="player" animClass={playerAnim} fainted={playerFainted} />
+                {/* HP info anchored to top-right */}
+                <div className="self-start mt-1 flex flex-col items-end">
+                    <span className="font-pixel text-[6px] text-green-900 uppercase tracking-widest block mb-1.5 text-right">Você</span>
+                    <HpBar current={playerHp} max={player.max_hp} name={player.pokemon.name} level={player.level} />
+                </div>
             </div>
         </div>
     );
@@ -473,11 +479,11 @@ export default function Show({ battle }) {
         <AuthenticatedLayout
             header={
                 <div className="flex items-center gap-3">
-                    <Link href={route('battles.index')} className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600">
+                    <Link href={route('battles.index')} className="flex items-center gap-1 text-sm text-slate-400 hover:text-white">
                         <ChevronLeft className="w-4 h-4" /> Histórico
                     </Link>
-                    <span className="text-gray-300">/</span>
-                    <h2 className="text-xl font-semibold text-gray-800">Batalha #{battle.id}</h2>
+                    <span className="text-slate-600">/</span>
+                    <h2 className="text-xl font-semibold text-white">Batalha #{battle.id}</h2>
                     {result && <ResultBadge result={result} />}
                 </div>
             }
