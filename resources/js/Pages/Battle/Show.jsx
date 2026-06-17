@@ -1,12 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
+import { getTypeStyle } from '@/lib/pokemon';
 import { sound } from '@/hooks/useSound';
 import { Head, Link } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Trophy, Skull, Handshake, Sword, Bot, ClipboardList, Play, ChevronsRight,
     Star, Sparkles, Leaf, Coins, ChevronLeft, ChevronDown, ChevronUp,
-    Swords, ScrollText, ArrowRight, Check,
+    Swords, ScrollText,
 } from 'lucide-react';
 
 // ── Timing constants ───────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ function ResultPanel({ battle, stats }) {
     const showLuck  = !isLoss && luckText;
 
     return (
-        <div className="mt-4 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="poke-card animate-pop mt-4 overflow-hidden">
             {/* Banner */}
             <div className={`bg-gradient-to-r ${cfg.banner} px-6 py-5 flex items-center justify-between`}>
                 <div className="flex items-center gap-3">
@@ -191,7 +191,7 @@ function ResultPanel({ battle, stats }) {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 divide-x divide-gray-100 text-center py-4">
+            <div className="grid grid-cols-3 divide-x divide-[var(--border)] text-center py-4">
                 <StatCell label="Turnos" value={stats.totalTurns} />
                 <StatCell label="Dano causado" value={stats.playerDamageDealt} highlight="text-green-600" />
                 <StatCell label="Dano recebido" value={stats.opponentDamageDealt} highlight="text-red-500" />
@@ -199,45 +199,45 @@ function ResultPanel({ battle, stats }) {
 
             {/* Best moves */}
             {(stats.playerBestMove || stats.opponentBestMove) && (
-                <div className="grid grid-cols-2 gap-px bg-gray-100">
+                <div className="grid grid-cols-2 gap-px bg-[var(--border)]">
                     <BestMoveCell move={stats.playerBestMove} label="Seu melhor golpe" />
                     <BestMoveCell move={stats.opponentBestMove} label="Golpe inimigo" />
                 </div>
             )}
 
             {/* Battle log toggle */}
-            <div className="border-t border-gray-100">
+            <div className="border-t border-app">
                 <button
                     onClick={() => setLogOpen(v => !v)}
-                    className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-app-muted hover:bg-[var(--surface-strong)] transition-colors"
                 >
                     <span className="flex items-center gap-2">
                         <ClipboardList className="w-4 h-4" />
-                        Log da batalha <span className="font-normal text-gray-400">({turns.length} turnos)</span>
+                        Log da batalha <span className="font-normal text-app-soft">({turns.length} turnos)</span>
                     </span>
-                    {logOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    {logOpen ? <ChevronUp className="w-4 h-4 text-app-soft" /> : <ChevronDown className="w-4 h-4 text-app-soft" />}
                 </button>
 
                 {logOpen && <BattleLogTable turns={turns} player={player} opponent={opponent} />}
             </div>
 
             {/* Actions */}
-            <div className="border-t border-gray-100 px-5 py-4 flex flex-wrap gap-3 justify-center">
+            <div className="border-t border-app px-5 py-4 flex flex-wrap gap-3 justify-center">
                 <Link
                     href={route('battle.new')}
-                    className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 shadow transition-colors"
+                    className="btn-poke flex items-center gap-2 px-5 py-2 text-sm font-bold"
                 >
                     <Swords className="w-4 h-4" /> Nova Batalha
                 </Link>
                 <Link
                     href={route('battles.log', battle.id)}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="btn-quiet flex items-center gap-2 px-5 py-2 text-sm font-semibold"
                 >
                     <ClipboardList className="w-4 h-4" /> Log completo
                 </Link>
                 <Link
                     href={route('battles.index')}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="btn-quiet flex items-center gap-2 px-5 py-2 text-sm font-semibold"
                 >
                     <ScrollText className="w-4 h-4" /> Histórico
                 </Link>
@@ -246,30 +246,30 @@ function ResultPanel({ battle, stats }) {
     );
 }
 
-function StatCell({ label, value, highlight = 'text-gray-800' }) {
+function StatCell({ label, value, highlight = 'text-app' }) {
     return (
         <div className="py-2 px-3">
-            <div className={`text-xl font-bold ${highlight}`}>{value}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+            <div className={`text-xl font-black ${highlight}`}>{value}</div>
+            <div className="text-xs text-app-soft mt-0.5">{label}</div>
         </div>
     );
 }
 
 function BestMoveCell({ move, label }) {
-    if (!move) return <div className="bg-white p-3" />;
+    if (!move) return <div className="bg-app-surface p-3" />;
     const typeStyle = move.move_type ? getTypeStyle(move.move_type) : null;
 
     return (
-        <div className="bg-white p-3">
-            <p className="text-xs text-gray-400 mb-1">{label}</p>
+        <div className="bg-app-surface p-3">
+            <p className="text-xs text-app-soft mb-1">{label}</p>
             <div className="flex items-center gap-1.5 flex-wrap">
                 {typeStyle && (
                     <span className={`${typeStyle.bg} ${typeStyle.text} text-[10px] px-1.5 py-0.5 rounded font-bold uppercase`}>
                         {move.move_type}
                     </span>
                 )}
-                <span className="text-sm font-semibold text-gray-800">{move.move_name}</span>
-                <span className="text-sm text-gray-500">−{move.damage_dealt}</span>
+                <span className="text-sm font-semibold text-app">{move.move_name}</span>
+                <span className="text-sm text-app-muted">−{move.damage_dealt}</span>
             </div>
         </div>
     );
@@ -280,8 +280,8 @@ function BattleLogTable({ turns, player, opponent }) {
     return (
         <div className="overflow-x-auto max-h-72 overflow-y-auto">
             <table className="w-full text-xs">
-                <thead className="bg-gray-50 sticky top-0">
-                    <tr className="text-left text-gray-500 border-b border-gray-100">
+                <thead className="sticky top-0 bg-[var(--surface-strong)]">
+                    <tr className="text-left text-app-muted border-b border-app">
                         <th className="px-3 py-2 font-medium">#</th>
                         <th className="px-3 py-2 font-medium">Atacante</th>
                         <th className="px-3 py-2 font-medium">Golpe</th>
@@ -305,11 +305,11 @@ function BattleLogTable({ turns, player, opponent }) {
                         return (
                             <tr
                                 key={t.turn_number}
-                                className={`border-b border-gray-50 transition-colors ${
-                                    isPlayer ? 'hover:bg-red-50' : 'hover:bg-slate-50'
+                                className={`border-b border-app transition-colors ${
+                                    isPlayer ? 'hover:bg-red-500/10' : 'hover:bg-blue-500/10'
                                 }`}
                             >
-                                <td className="px-3 py-1.5 text-gray-400 font-mono">{t.turn_number}</td>
+                                <td className="px-3 py-1.5 text-app-soft font-mono">{t.turn_number}</td>
                                 <td className="px-3 py-1.5">
                                     <span className={`inline-flex items-center gap-1 font-medium ${
                                         isPlayer ? 'text-red-600' : 'text-slate-500'
@@ -327,20 +327,20 @@ function BattleLogTable({ turns, player, opponent }) {
                                                 {t.move_type}
                                             </span>
                                         )}
-                                        <span className="text-gray-800">
+                                        <span className="text-app">
                                             {t.move_name}
-                                            {t.stab && <span className="text-xs text-slate-400 ml-1">STAB</span>}
+                                            {t.stab && <span className="text-xs text-app-soft ml-1">STAB</span>}
                                             {t.is_critical && <Star className="w-3 h-3 inline ml-1 text-yellow-500 fill-yellow-500" />}
                                         </span>
                                     </div>
                                 </td>
-                                <td className="px-3 py-1.5 text-right font-mono font-semibold text-gray-700">
-                                    {t.damage_dealt > 0 ? `−${t.damage_dealt}` : <span className="text-gray-300">—</span>}
+                                <td className="px-3 py-1.5 text-right font-mono font-semibold text-app">
+                                    {t.damage_dealt > 0 ? `−${t.damage_dealt}` : <span className="text-app-soft">—</span>}
                                 </td>
                                 <td className="px-3 py-1.5">
                                     {eff
                                         ? <span className={`font-medium ${eff.cls}`}>{eff.text}</span>
-                                        : <span className="text-gray-300">—</span>
+                                        : <span className="text-app-soft">—</span>
                                     }
                                 </td>
                                 <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.player_hp_remaining <= 0 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>
@@ -479,11 +479,11 @@ export default function Show({ battle }) {
         <AuthenticatedLayout
             header={
                 <div className="flex items-center gap-3">
-                    <Link href={route('battles.index')} className="flex items-center gap-1 text-sm text-slate-400 hover:text-white">
+                    <Link href={route('battles.index')} className="flex items-center gap-1 text-sm font-semibold text-app-muted hover:text-app">
                         <ChevronLeft className="w-4 h-4" /> Histórico
                     </Link>
-                    <span className="text-slate-600">/</span>
-                    <h2 className="text-xl font-semibold text-white">Batalha #{battle.id}</h2>
+                    <span className="text-app-soft">/</span>
+                    <h2 className="text-xl font-black text-app">Batalha #{battle.id}</h2>
                     {result && <ResultBadge result={result} />}
                 </div>
             }
@@ -511,7 +511,7 @@ export default function Show({ battle }) {
                         {phase === 'ready' && (
                             <button
                                 onClick={startReplay}
-                                className="flex items-center gap-2 font-pixel text-[10px] rounded-xl bg-red-600 px-8 py-3 text-white hover:bg-red-700 shadow-lg transition-all active:scale-95"
+                                className="btn-poke flex items-center gap-2 px-8 py-3 font-pixel text-[10px]"
                             >
                                 <Play className="w-4 h-4" /> VER BATALHA
                             </button>
@@ -519,7 +519,7 @@ export default function Show({ battle }) {
                         {phase === 'playing' && (
                             <button
                                 onClick={skipToEnd}
-                                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                                className="btn-quiet flex items-center gap-2 px-5 py-2 text-sm font-semibold"
                             >
                                 <ChevronsRight className="w-4 h-4" /> Pular
                             </button>
@@ -527,7 +527,7 @@ export default function Show({ battle }) {
                         {finished && (
                             <button
                                 onClick={startReplay}
-                                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shadow-sm"
+                                className="btn-quiet flex items-center gap-2 px-5 py-2 text-sm font-semibold"
                             >
                                 <Play className="w-4 h-4" /> Rever animação
                             </button>

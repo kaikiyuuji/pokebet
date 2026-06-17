@@ -37,8 +37,8 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">Informações do Perfil</h2>
-                <p className="mt-1 text-sm text-gray-600">
+                <h2 className="text-lg font-black text-app">Informações do Perfil</h2>
+                <p className="mt-1 text-sm text-app-muted">
                     Atualize seu nome, username, e-mail e avatar.
                 </p>
             </header>
@@ -49,17 +49,17 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                     <img
                         src={avatarPreview ?? user.avatar_url}
                         alt="Avatar"
-                        className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                        className="h-16 w-16 rounded-full object-cover border-2 border-yellow-300"
                     />
                     <div>
                         <button
                             type="button"
                             onClick={() => avatarInput.current?.click()}
-                            className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                            className="text-sm font-bold text-red-600 hover:text-red-500"
                         >
                             Trocar foto
                         </button>
-                        <p className="text-xs text-gray-400 mt-0.5">JPG, PNG ou WebP — máx. 2 MB</p>
+                        <p className="text-xs text-app-soft mt-0.5">JPG, PNG ou WebP — máx. 2 MB</p>
                         <InputError message={errors.avatar} className="mt-1" />
                     </div>
                     <input
@@ -89,7 +89,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                 <div>
                     <InputLabel htmlFor="username" value="Username" />
                     <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 text-sm">
+                        <span className="inline-flex items-center rounded-l-md border border-r-0 border-app bg-[var(--surface-strong)] px-3 text-app-muted text-sm">
                             @
                         </span>
                         <TextInput
@@ -101,7 +101,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                             autoComplete="off"
                         />
                     </div>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-app-soft">
                         Letras minúsculas, números e underscores. 3–20 caracteres.
                     </p>
                     <InputError className="mt-1" message={errors.username} />
@@ -127,27 +127,27 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                     <InputLabel htmlFor="bio" value="Bio" />
                     <textarea
                         id="bio"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                        className="mt-1 block w-full rounded-lg border-app bg-app-surface text-app shadow-sm focus:border-red-500 focus:ring-red-500 text-sm"
                         rows={3}
                         maxLength={160}
                         value={data.bio}
                         onChange={(e) => setData('bio', e.target.value)}
                         placeholder="Conte um pouco sobre você..."
                     />
-                    <p className="text-xs text-gray-400 mt-1 text-right">{data.bio.length}/160</p>
+                    <p className="text-xs text-app-soft mt-1 text-right">{data.bio.length}/160</p>
                     <InputError className="mt-1" message={errors.bio} />
                 </div>
 
                 {/* Email verification notice */}
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
-                        <p className="text-sm text-gray-800">
+                        <p className="text-sm text-app-muted">
                             Seu e-mail não foi verificado.{' '}
                             <Link
                                 href={route('verification.send')}
                                 method="post"
                                 as="button"
-                                className="text-indigo-600 underline hover:text-indigo-500"
+                                className="font-semibold text-red-600 underline hover:text-red-500"
                             >
                                 Reenviar e-mail de verificação.
                             </Link>

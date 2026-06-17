@@ -2,6 +2,273 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    color-scheme: light;
+    --app-bg: #f5f7fb;
+    --app-bg-soft: #ffffff;
+    --surface: #ffffff;
+    --surface-strong: #f8fafc;
+    --surface-muted: #eef2f7;
+    --surface-raised: #ffffff;
+    --text: #172033;
+    --text-muted: #667085;
+    --text-soft: #94a3b8;
+    --border: #d8e0ea;
+    --border-strong: #20304c;
+    --brand-red: #df2f2f;
+    --brand-red-dark: #b91c1c;
+    --brand-yellow: #facc15;
+    --brand-blue: #2563eb;
+    --brand-green: #22c55e;
+    --shadow-card: 0 12px 28px rgba(31, 41, 55, 0.12);
+    --shadow-soft: 0 8px 20px rgba(31, 41, 55, 0.08);
+}
+
+[data-theme='dark'] {
+    color-scheme: dark;
+    --app-bg: #101827;
+    --app-bg-soft: #172033;
+    --surface: #172033;
+    --surface-strong: #1f2b43;
+    --surface-muted: #26344e;
+    --surface-raised: #1b263b;
+    --text: #f8fafc;
+    --text-muted: #cbd5e1;
+    --text-soft: #94a3b8;
+    --border: #34435f;
+    --border-strong: #facc15;
+    --brand-red: #f05252;
+    --brand-red-dark: #dc2626;
+    --brand-yellow: #fde047;
+    --brand-blue: #60a5fa;
+    --brand-green: #4ade80;
+    --shadow-card: 0 16px 34px rgba(0, 0, 0, 0.28);
+    --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+html {
+    background: var(--app-bg);
+}
+
+body {
+    color: var(--text);
+    background: var(--app-bg);
+}
+
+.app-shell {
+    min-height: 100vh;
+    color: var(--text);
+    background:
+        linear-gradient(180deg, rgba(223, 47, 47, 0.10) 0, rgba(223, 47, 47, 0) 220px),
+        repeating-linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0 1px, transparent 1px 18px),
+        var(--app-bg);
+}
+
+[data-theme='dark'] .app-shell {
+    background:
+        linear-gradient(180deg, rgba(223, 47, 47, 0.20) 0, rgba(223, 47, 47, 0) 240px),
+        repeating-linear-gradient(135deg, rgba(250, 204, 21, 0.06) 0 1px, transparent 1px 18px),
+        var(--app-bg);
+}
+
+.poke-topbar {
+    border-bottom: 4px solid #1d2a44;
+    background:
+        linear-gradient(90deg, #c91f28 0%, #e83a3a 42%, #facc15 42%, #facc15 46%, #2455c6 46%, #1e40af 100%);
+    box-shadow: var(--shadow-soft);
+}
+
+.app-header {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(12px);
+}
+
+.poke-surface {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.poke-card {
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 4px 4px 0 var(--border-strong), var(--shadow-soft);
+}
+
+.poke-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 32%),
+        linear-gradient(90deg, rgba(250, 204, 21, 0.16), transparent 30%, rgba(37, 99, 235, 0.12));
+    opacity: 0.55;
+}
+
+[data-theme='dark'] .poke-card::before {
+    opacity: 0.22;
+}
+
+.poke-card > * {
+    position: relative;
+}
+
+.pokemon-card {
+    animation: card-in 360ms ease-out both;
+    animation-delay: calc(var(--card-index, 0) * 24ms);
+}
+
+.hover-lift {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 7px 7px 0 var(--border-strong), var(--shadow-card);
+}
+
+.btn-poke {
+    border: 2px solid #1d2a44;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ef4444, #c91f28);
+    color: #ffffff;
+    box-shadow: 3px 3px 0 #1d2a44;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.btn-poke:hover {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow: 4px 4px 0 #1d2a44;
+}
+
+.btn-poke:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #1d2a44;
+}
+
+.btn-quiet {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.btn-quiet:hover {
+    color: var(--text);
+    background: var(--surface-strong);
+    transform: translateY(-1px);
+}
+
+.theme-toggle {
+    border: 2px solid rgba(255, 255, 255, 0.65);
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.18);
+    color: #fff7c2;
+    transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.theme-toggle:hover {
+    background: rgba(15, 23, 42, 0.28);
+    transform: translateY(-1px) rotate(-3deg);
+}
+
+.text-app {
+    color: var(--text);
+}
+
+.text-app-muted {
+    color: var(--text-muted);
+}
+
+.text-app-soft {
+    color: var(--text-soft);
+}
+
+.bg-app-surface {
+    background: var(--surface);
+}
+
+.border-app {
+    border-color: var(--border);
+}
+
+.animate-fade-up {
+    animation: fade-up 420ms ease-out both;
+}
+
+.animate-pop {
+    animation: pop-in 300ms ease-out both;
+}
+
+.animate-soft-pulse {
+    animation: soft-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes card-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes pop-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.03);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes soft-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.04);
+        opacity: 0.88;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 /* ── Battle animations ─────────────────────────────────────────── */
 
 @keyframes battle-lunge-right {
