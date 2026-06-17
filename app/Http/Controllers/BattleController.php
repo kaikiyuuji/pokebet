@@ -10,6 +10,7 @@ use App\Game\Battle\MoveSelector;
 use App\Game\Pokemon\PokeApiService;
 use App\Game\Pokemon\PokemonData;
 use App\Models\Battle;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,13 +54,19 @@ class BattleController extends Controller
         MoveSelector $moveSelector,
     ): RedirectResponse {
         $request->validate([
-            'pokeapi_id' => ['required', 'integer', 'min:1', 'max:10000'],
+            'pokeapi_id'          => ['required', 'integer', 'min:1', 'max:10000'],
+            'opponent_pokeapi_id' => ['nullable', 'integer', 'min:1', 'max:10000', 'different:pokeapi_id'],
         ]);
 
-        $pokeapiId = (int) $request->pokeapi_id;
+        $pokeapiId         = (int) $request->pokeapi_id;
+        $opponentPokeapiId = $request->filled('opponent_pokeapi_id')
+            ? (int) $request->opponent_pokeapi_id
+            : null;
 
         $player   = $this->pokeApi->fetchForBattle($pokeapiId);
-        $opponent = $this->pokeApi->randomOpponent($pokeapiId);
+        $opponent = $opponentPokeapiId
+            ? $this->pokeApi->fetchForBattle($opponentPokeapiId)
+            : $this->pickBattleOpponent($pokeapiId, $moveSelector);
 
         if (!$moveSelector->hasDamagingMove($player->moves)) {
             return back()->withErrors([
@@ -68,7 +75,7 @@ class BattleController extends Controller
         }
 
         if (!$moveSelector->hasDamagingMove($opponent->moves)) {
-            $opponent = $this->pokeApi->randomOpponent($pokeapiId);
+            $opponent = $this->pickBattleOpponent($pokeapiId, $moveSelector);
         }
 
         $battle = $create->execute($request->user(), $player, $opponent);
@@ -76,6 +83,19 @@ class BattleController extends Controller
         $rewards->execute($battle);
 
         return redirect()->route('battle.show', $battle->id);
+    }
+
+    public function opponent(Request $request, MoveSelector $moveSelector): JsonResponse
+    {
+        $request->validate([
+            'pokeapi_id' => ['required', 'integer', 'min:1', 'max:10000'],
+        ]);
+
+        $opponent = $this->pickBattleOpponent((int) $request->pokeapi_id, $moveSelector);
+
+        return response()->json([
+            'opponent' => $this->serializePokemon($opponent),
+        ]);
     }
 
     // ── GET /battle/{battle} ─────────────────────────────────────
@@ -147,6 +167,21 @@ class BattleController extends Controller
                 ? ['name' => $p->secondaryTypeName, 'slug' => $p->secondaryTypeSlug]
                 : null,
         ];
+    }
+
+    private function pickBattleOpponent(int $excludePokeapiId, MoveSelector $moveSelector): PokemonData
+    {
+        $opponent = null;
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $opponent = $this->pokeApi->randomOpponent($excludePokeapiId);
+
+            if ($moveSelector->hasDamagingMove($opponent->moves)) {
+                return $opponent;
+            }
+        }
+
+        return $opponent ?? $this->pokeApi->randomOpponent($excludePokeapiId);
     }
 
     private function buildPageLinks(int $current, int $lastPage, string $search): array

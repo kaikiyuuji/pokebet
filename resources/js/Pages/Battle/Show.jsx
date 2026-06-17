@@ -105,7 +105,7 @@ function LiveLog({ turns, currentIdx }) {
 // Layout: each Pokémon's sprite and HP bar share the same visual zone.
 //   Opponent zone (sky, top): HP info LEFT ←→ sprite RIGHT
 //   Player   zone (grass, bottom): sprite LEFT ←→ HP info RIGHT
-function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAnim, playerFainted, opponentFainted, phase, turnIdx, totalTurns }) {
+function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAnim, playerFainted, opponentFainted, phase }) {
     return (
         <div className="rounded-2xl border-4 border-gray-800 overflow-hidden shadow-2xl">
 
@@ -124,11 +124,6 @@ function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAni
             <div className="battle-divider flex items-center justify-center" style={{ height: 28 }}>
                 {phase === 'ready' && (
                     <span className="font-pixel text-[10px] text-gray-700 bg-white bg-opacity-80 px-3 py-0.5 rounded-full shadow-sm">VS</span>
-                )}
-                {phase === 'playing' && (
-                    <span className="font-pixel text-[8px] text-gray-700 bg-white bg-opacity-80 px-2 py-0.5 rounded-full shadow-sm tabular-nums">
-                        {turnIdx}/{totalTurns}
-                    </span>
                 )}
             </div>
 
@@ -498,7 +493,7 @@ export default function Show({ battle }) {
                         playerHp={playerHp} opponentHp={opponentHp}
                         playerAnim={playerAnim} opponentAnim={opponentAnim}
                         playerFainted={playerFainted} opponentFainted={opponentFainted}
-                        phase={phase} turnIdx={turnIdx} totalTurns={turns.length}
+                        phase={phase}
                     />
 
                     {!finished && (

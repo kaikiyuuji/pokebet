@@ -20,10 +20,13 @@ class PokeApiService
      */
     public function fetchForBattle(int $pokeapiId): PokemonData
     {
-        return Cache::remember("pokeapi.battle.{$pokeapiId}", 86400 * 7, function () use ($pokeapiId) {
-            $data = $this->fetch("/pokemon/{$pokeapiId}");
-            return $this->buildPokemonData($data);
-        });
+        $data = Cache::remember(
+            "pokeapi.battle.raw.{$pokeapiId}",
+            86400 * 7,
+            fn() => $this->fetch("/pokemon/{$pokeapiId}")
+        );
+
+        return $this->buildPokemonData($data);
     }
 
     /**

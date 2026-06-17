@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Battle
     Route::get('/battle/new',         [BattleController::class, 'create'])->name('battle.new');
+    Route::post('/battle/opponent',   [BattleController::class, 'opponent'])->name('battle.opponent');
     Route::post('/battle',            [BattleController::class, 'store'])->name('battle.store');
     Route::get('/battle/{battle}',    [BattleController::class, 'show'])->name('battle.show');
 

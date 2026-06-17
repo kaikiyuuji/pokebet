@@ -1,8 +1,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Swords, Check, X, Sparkles } from 'lucide-react';
+
+const ROULETTE_FALLBACK = [
+    { pokeapi_id: 25, name: 'Pikachu', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png' },
+    { pokeapi_id: 6, name: 'Charizard', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png' },
+    { pokeapi_id: 9, name: 'Blastoise', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/9.png' },
+    { pokeapi_id: 3, name: 'Venusaur', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/3.png' },
+    { pokeapi_id: 94, name: 'Gengar', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/94.png' },
+    { pokeapi_id: 149, name: 'Dragonite', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/149.png' },
+];
 
 function TypeBadge({ type, size = 'sm' }) {
     if (!type) return null;
@@ -114,7 +123,8 @@ function SelectionBar({ selected, onClear, onStart, processing }) {
                     <button
                         type="button"
                         onClick={onClear}
-                        className="btn-quiet flex items-center gap-1 px-3 py-2 text-sm font-semibold"
+                        disabled={processing}
+                        className="btn-quiet flex items-center gap-1 px-3 py-2 text-sm font-semibold disabled:opacity-50"
                     >
                         <X className="h-4 w-4" /> Cancelar
                     </button>
@@ -133,11 +143,92 @@ function SelectionBar({ selected, onClear, onStart, processing }) {
     );
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function OpponentRoulette({ show, selected, candidates, phase, opponent }) {
+    if (!show || !selected) return null;
+
+    const entries = candidates.length > 0 ? candidates : ROULETTE_FALLBACK;
+    const reel = [...entries, ...entries];
+    const revealed = phase === 'revealed' && opponent;
+
+    return (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+            <div className="poke-card w-full max-w-xl p-5 text-center animate-pop">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-slate-900 bg-yellow-300 text-red-600 shadow-[3px_3px_0_#1d2a44]">
+                    <Sparkles className="h-6 w-6 animate-soft-pulse" />
+                </div>
+                <p className="font-pixel text-[11px] text-app">
+                    {revealed ? 'Adversário sorteado!' : 'Sorteando adversário'}
+                </p>
+                <p className="mt-2 text-sm text-app-muted">
+                    {revealed
+                        ? `${opponent.name} entrou na batalha.`
+                        : `${selected.name} está procurando o próximo desafio.`
+                    }
+                </p>
+
+                {revealed ? (
+                    <div className="mt-5 rounded border-2 border-slate-900 bg-[var(--surface-strong)] p-5 animate-pop">
+                        <img
+                            src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
+                            alt={opponent.name}
+                            className="mx-auto h-32 w-32 object-contain drop-shadow-xl"
+                            style={{ imageRendering: 'pixelated' }}
+                        />
+                        <p className="mt-3 text-xl font-black capitalize text-app">{opponent.name}</p>
+                        <div className="mt-2 flex justify-center gap-1">
+                            <TypeBadge type={opponent.primary_type} size="xs" />
+                            <TypeBadge type={opponent.secondary_type} size="xs" />
+                        </div>
+                        <p className="mt-3 text-xs font-semibold uppercase text-app-soft">Preparando batalha...</p>
+                    </div>
+                ) : (
+                    <div className="roulette-window relative mt-5 overflow-hidden rounded border-2 border-slate-900 bg-[var(--surface-strong)] py-3 shadow-inner">
+                        <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-1 -translate-x-1/2 bg-red-600 shadow-[0_0_0_2px_#facc15]" />
+                        <div className="roulette-track flex w-max gap-3 px-3">
+                            {reel.map((pokemon, index) => (
+                                <div
+                                    key={`${pokemon.pokeapi_id}-${index}`}
+                                    className="roulette-slot flex h-28 w-24 shrink-0 flex-col items-center justify-center rounded border border-app bg-app-surface p-2"
+                                >
+                                    <img
+                                        src={pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png'}
+                                        alt={pokemon.name}
+                                        className="h-16 w-16 object-contain drop-shadow-md"
+                                        style={{ imageRendering: 'pixelated' }}
+                                    />
+                                    <span className="mt-1 max-w-full truncate text-xs font-black capitalize text-app">
+                                        {pokemon.name}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function SelectPokemon({ pokemons, types, filters }) {
     const [selected, setSelected] = useState(null);
     const [search, setSearch] = useState(filters.search ?? '');
     const searchTimer = useRef(null);
     const [processing, setProcessing] = useState(false);
+    const [showRoulette, setShowRoulette] = useState(false);
+    const [roulettePhase, setRoulettePhase] = useState('spinning');
+    const [rouletteOpponent, setRouletteOpponent] = useState(null);
+
+    const rouletteCandidates = useMemo(() => {
+        const pageCandidates = pokemons.data
+            .filter((pokemon) => pokemon.pokeapi_id !== selected?.pokeapi_id)
+            .slice(0, 10);
+
+        return pageCandidates.length >= 4 ? pageCandidates : ROULETTE_FALLBACK;
+    }, [pokemons.data, selected]);
 
     useEffect(() => {
         if (search === (filters.search ?? '')) return;
@@ -162,12 +253,42 @@ export default function SelectPokemon({ pokemons, types, filters }) {
         );
     };
 
-    const handleStart = () => {
+    const handleStart = async () => {
         if (!selected || processing) return;
         setProcessing(true);
-        router.post(route('battle.store'), { pokeapi_id: selected.pokeapi_id }, {
-            onFinish: () => setProcessing(false),
-        });
+        setShowRoulette(true);
+        setRoulettePhase('spinning');
+        setRouletteOpponent(null);
+
+        try {
+            const [response] = await Promise.all([
+                window.axios.post(route('battle.opponent'), { pokeapi_id: selected.pokeapi_id }),
+                sleep(1600),
+            ]);
+
+            const opponent = response.data.opponent;
+            setRouletteOpponent(opponent);
+            setRoulettePhase('revealed');
+
+            await sleep(1300);
+
+            router.post(
+                route('battle.store'),
+                {
+                    pokeapi_id: selected.pokeapi_id,
+                    opponent_pokeapi_id: opponent.pokeapi_id,
+                },
+                {
+                    onFinish: () => {
+                        setProcessing(false);
+                        setShowRoulette(false);
+                    },
+                }
+            );
+        } catch {
+            setProcessing(false);
+            setShowRoulette(false);
+        }
     };
 
     const isEmpty = pokemons.data.length === 0;
@@ -268,6 +389,14 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                 onClear={() => setSelected(null)}
                 onStart={handleStart}
                 processing={processing}
+            />
+
+            <OpponentRoulette
+                show={showRoulette}
+                selected={selected}
+                candidates={rouletteCandidates}
+                phase={roulettePhase}
+                opponent={rouletteOpponent}
             />
         </AuthenticatedLayout>
     );
