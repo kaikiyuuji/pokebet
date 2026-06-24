@@ -73,7 +73,7 @@ export default function Login({ status, canResetPassword }) {
                     {canResetPassword && (
                         <Link
                             href={route('password.request')}
-                            className="rounded text-sm font-semibold text-app-muted underline hover:text-app focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            className="text-sm font-semibold text-app-muted underline hover:text-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
                         >
                             Esqueci minha senha
                         </Link>

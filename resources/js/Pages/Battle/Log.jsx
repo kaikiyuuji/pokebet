@@ -20,14 +20,14 @@ function TypeBadge({ slug, name }) {
 function ResultBanner({ result, coinsAwarded }) {
     const isLoss = result === 'loss';
     const map = {
-        win:  { label: 'Vitória', Icon: Trophy,    from: 'from-green-500',  to: 'to-emerald-600' },
-        loss: { label: 'Derrota', Icon: Skull,     from: 'from-red-500',    to: 'to-rose-700'    },
-        draw: { label: 'Empate',  Icon: Handshake, from: 'from-yellow-400', to: 'to-amber-500'   },
+        win: { label: 'Vitória', Icon: Trophy, tone: 'result-banner--win' },
+        loss: { label: 'Derrota', Icon: Skull, tone: 'result-banner--loss' },
+        draw: { label: 'Empate', Icon: Handshake, tone: 'result-banner--draw' },
     };
-    const { label, Icon, from, to } = map[result] ?? { label: result, Icon: Swords, from: 'from-gray-400', to: 'to-gray-500' };
+    const { label, Icon, tone } = map[result] ?? { label: result, Icon: Swords, tone: 'result-banner--draw' };
 
     return (
-        <div className={`poke-card animate-pop bg-gradient-to-r ${from} ${to} p-5 text-white flex items-center gap-4`}>
+        <div className={`result-banner ${tone} poke-card animate-pop flex items-center gap-4 p-5 text-white`}>
             <Icon className="w-10 h-10 opacity-90 shrink-0" />
             <div>
                 <p className="text-xl font-extrabold tracking-wide">{label}</p>
@@ -64,10 +64,10 @@ function HpBar({ current, max }) {
 
 function EffLabel({ label }) {
     const map = {
-        'super-effective':    'text-green-600 font-bold',
-        'not-very-effective': 'text-red-500',
-        'immune':             'text-gray-400',
-        'normal':             'text-gray-500',
+        'super-effective': 'effectiveness--super',
+        'not-very-effective': 'effectiveness--weak',
+        'immune': 'effectiveness--immune',
+        'normal': 'text-app-soft',
     };
     const names = {
         'super-effective':    'Super efetivo',
@@ -115,13 +115,11 @@ export default function Log({ battle }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex flex-wrap items-end justify-between gap-5">
                     <div>
-                        <h2 className="text-xl font-black text-app flex items-center gap-2">
-                            <ClipboardList className="w-5 h-5 text-red-500" />
-                            Log de Batalha #{battle.id}
-                        </h2>
-                        <p className="text-xs text-app-muted mt-0.5">{battle.created_at} · seed: {battle.random_seed}</p>
+                        <p className="technical-label text-[var(--accent)]">04 / Telemetria completa</p>
+                        <h1 className="mt-3 text-4xl font-medium tracking-[-0.06em] text-app">Log #{battle.id}</h1>
+                        <p className="technical-label mt-2">{battle.created_at} / seed: {battle.random_seed}</p>
                     </div>
                     <div className="flex gap-2">
                         <Link
@@ -142,7 +140,7 @@ export default function Log({ battle }) {
         >
             <Head title={`Log de Batalha #${battle.id}`} />
 
-            <div className="py-8 px-4">
+            <div className="app-frame px-4 py-10 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-5xl space-y-6">
 
                     <ResultBanner result={battle.result} coinsAwarded={battle.coins_awarded} />
@@ -198,7 +196,7 @@ export default function Log({ battle }) {
                                         <span className="font-semibold text-app capitalize">{turn.move_name}</span>
                                         <TypeBadge slug={turn.move_type} name={turn.move_type} />
                                         {turn.stab && (
-                                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1">STAB</span>
+                                            <span className="border border-[var(--accent)] bg-[var(--accent-soft)] px-1 text-[10px] font-bold text-[var(--accent)]">STAB</span>
                                         )}
                                         {turn.is_critical && (
                                             <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded px-1">
@@ -231,7 +229,7 @@ export default function Log({ battle }) {
                                         className={[
                                             'px-3 py-1 rounded-full text-xs font-bold border transition-all capitalize hover:-translate-y-0.5',
                                             filter === opt.value
-                                                ? 'bg-red-600 text-white border-red-600'
+                                                ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                                                 : 'bg-app-surface text-app-muted border-app hover:text-app',
                                         ].join(' ')}
                                     >
@@ -269,7 +267,7 @@ export default function Log({ battle }) {
                                             >
                                                 <td className="px-4 py-2.5 text-app-soft tabular-nums">{t.turn_number}</td>
                                                 <td className="px-4 py-2.5">
-                                                    <span className={`flex items-center gap-1.5 font-medium capitalize ${isPlayer ? 'text-red-600' : 'text-slate-600'}`}>
+                                                    <span className={`flex items-center gap-1.5 font-medium capitalize ${isPlayer ? 'text-[var(--accent)]' : 'text-app-muted'}`}>
                                                         <AttIcon className="w-3.5 h-3.5" />
                                                         {isPlayer ? playerName : opponentName}
                                                     </span>
@@ -279,7 +277,7 @@ export default function Log({ battle }) {
                                                         <span className="font-medium text-app capitalize">{t.move_name}</span>
                                                         <TypeBadge slug={t.move_type} name={t.move_type} />
                                                         {t.stab && (
-                                                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1">STAB</span>
+                                                            <span className="border border-[var(--accent)] bg-[var(--accent-soft)] px-1 text-[9px] font-bold text-[var(--accent)]">STAB</span>
                                                         )}
                                                         {t.is_critical && (
                                                             <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded px-1">
@@ -294,10 +292,10 @@ export default function Log({ battle }) {
                                                 <td className="px-4 py-2.5">
                                                     <EffLabel label={t.effectiveness} />
                                                 </td>
-                                                <td className="px-4 py-2.5 text-right tabular-nums text-red-600 font-medium">
+                                                <td className="px-4 py-2.5 text-right tabular-nums text-app-muted font-medium">
                                                     {t.player_hp_remaining}
                                                 </td>
-                                                <td className="px-4 py-2.5 text-right tabular-nums text-slate-600 font-medium">
+                                                <td className="px-4 py-2.5 text-right tabular-nums text-app-muted font-medium">
                                                     {t.opponent_hp_remaining}
                                                 </td>
                                             </tr>
@@ -321,14 +319,14 @@ export default function Log({ battle }) {
                                 <div className="space-y-3">
                                     <div>
                                         <div className="flex justify-between text-xs text-app-muted mb-1">
-                                            <span className="capitalize font-medium text-red-600">{playerName}</span>
+                                            <span className="capitalize font-medium text-[var(--accent)]">{playerName}</span>
                                             <span>{last.player_hp_remaining} / {battle.player.max_hp}</span>
                                         </div>
                                         <HpBar current={last.player_hp_remaining} max={battle.player.max_hp} />
                                     </div>
                                     <div>
                                         <div className="flex justify-between text-xs text-app-muted mb-1">
-                                            <span className="capitalize font-medium text-slate-600">{opponentName}</span>
+                                            <span className="capitalize font-medium text-app-muted">{opponentName}</span>
                                             <span>{last.opponent_hp_remaining} / {battle.opponent.max_hp}</span>
                                         </div>
                                         <HpBar current={last.opponent_hp_remaining} max={battle.opponent.max_hp} />

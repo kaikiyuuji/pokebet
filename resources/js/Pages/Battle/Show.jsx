@@ -24,9 +24,9 @@ function hpColor(pct) {
 function effectivenessLabel(eff) {
     switch (eff) {
         case 'super-effective':
-        case 'double-super-effective': return { text: 'Super efetivo!', cls: 'text-pink-300' };
-        case 'not-very-effective':      return { text: 'Fraco…',         cls: 'text-blue-300' };
-        case 'immune':                  return { text: 'Sem efeito!',    cls: 'text-gray-400' };
+        case 'double-super-effective': return { text: 'Super efetivo!', cls: 'effectiveness--super' };
+        case 'not-very-effective':      return { text: 'Fraco…',         cls: 'effectiveness--weak' };
+        case 'immune':                  return { text: 'Sem efeito!',    cls: 'effectiveness--immune' };
         default:                        return null;
     }
 }
@@ -36,7 +36,7 @@ function HpBar({ current, max, name, level }) {
     const pct = max > 0 ? Math.max(0, current) / max : 0;
 
     return (
-        <div className="bg-black bg-opacity-70 rounded-lg px-3 py-2 w-44">
+        <div className="hp-panel">
             <div className="flex items-baseline justify-between mb-1">
                 <span className="font-pixel text-[8px] text-white leading-none capitalize truncate max-w-[100px]">{name}</span>
                 <span className="font-pixel text-[7px] text-slate-400 leading-none ml-2 shrink-0">Lv.{level}</span>
@@ -82,17 +82,17 @@ function LiveLog({ turns, currentIdx }) {
     const visible = [...turns].slice(0, currentIdx).reverse().slice(0, 4);
 
     return (
-        <div className="bg-slate-900 rounded-xl border border-slate-700 p-3 h-24 font-mono text-xs overflow-hidden flex flex-col gap-1">
-            {visible.length === 0 && <span className="text-slate-600">Aguardando…</span>}
+        <div className="battle-console flex h-24 flex-col gap-1 overflow-hidden p-3 font-mono text-xs">
+            {visible.length === 0 && <span className="battle-console__soft">Aguardando…</span>}
             {visible.map((t, i) => {
                 const eff = effectivenessLabel(t.effectiveness);
                 const AttackerIcon = t.attacker === 'player' ? Sword : Bot;
                 return (
                     <div key={currentIdx - i} className={`flex items-center gap-1.5 ${i > 0 ? 'opacity-40' : ''}`}>
-                        <AttackerIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                        <AttackerIcon className="battle-console__muted h-3 w-3 shrink-0" />
                         <span className="text-white">{t.move_name}</span>
-                        {t.damage_dealt > 0 && <span className="text-green-400">−{t.damage_dealt}</span>}
-                        {t.is_critical && <Star className="w-3 h-3 text-yellow-300 fill-yellow-300" />}
+                        {t.damage_dealt > 0 && <span className="battle-console__damage">−{t.damage_dealt}</span>}
+                        {t.is_critical && <Star className="h-3 w-3 fill-[var(--coin)] text-[var(--coin)]" />}
                         {eff && <span className={eff.cls}>{eff.text}</span>}
                     </div>
                 );
@@ -107,7 +107,7 @@ function LiveLog({ turns, currentIdx }) {
 //   Player   zone (grass, bottom): sprite LEFT ←→ HP info RIGHT
 function Arena({ player, opponent, playerHp, opponentHp, playerAnim, opponentAnim, playerFainted, opponentFainted, phase }) {
     return (
-        <div className="rounded-2xl border-4 border-gray-800 overflow-hidden shadow-2xl">
+        <div className="battle-frame overflow-hidden">
 
             {/* ── Opponent zone: sky ───────────────────── */}
             <div className="battle-sky flex items-end justify-between px-4 pt-4 pb-2 gap-3" style={{ minHeight: '11rem' }}>
@@ -148,10 +148,10 @@ function ResultPanel({ battle, stats }) {
     const isLoss = result === 'loss';
 
     const cfg = {
-        win:  { Icon: Trophy,   label: 'Vitória!', banner: 'from-yellow-400 to-amber-500',  text: 'text-amber-900' },
-        loss: { Icon: Skull,    label: 'Derrota…', banner: 'from-gray-800 to-slate-900',    text: 'text-slate-200' },
-        draw: { Icon: Handshake, label: 'Empate!', banner: 'from-indigo-600 to-purple-700', text: 'text-white' },
-    }[result] ?? { Icon: Swords, label: result, banner: 'from-gray-600 to-gray-700', text: 'text-white' };
+        win:  { Icon: Trophy, label: 'Vitória!', tone: 'result-banner--win' },
+        loss: { Icon: Skull, label: 'Derrota…', tone: 'result-banner--loss' },
+        draw: { Icon: Handshake, label: 'Empate!', tone: 'result-banner--draw' },
+    }[result] ?? { Icon: Swords, label: result, tone: 'result-banner--draw' };
 
     const LuckIcon  = luck_tier === 'jackpot' ? Star : luck_tier === 'super_lucky' ? Sparkles : Leaf;
     const luckText  = luck_tier === 'jackpot' ? 'JACKPOT!' : luck_tier === 'super_lucky' ? 'SUPER SORTE!' : luck_tier === 'lucky' ? 'Sorte!' : null;
@@ -160,25 +160,22 @@ function ResultPanel({ battle, stats }) {
     return (
         <div className="poke-card animate-pop mt-4 overflow-hidden">
             {/* Banner */}
-            <div className={`bg-gradient-to-r ${cfg.banner} px-6 py-5 flex items-center justify-between`}>
+            <div className={`result-banner ${cfg.tone} flex items-center justify-between px-6 py-5`}>
                 <div className="flex items-center gap-3">
-                    <cfg.Icon className={`w-10 h-10 ${cfg.text}`} />
+                    <cfg.Icon className="h-10 w-10 text-white" />
                     <div>
-                        <h2 className={`font-pixel text-sm ${cfg.text}`}>{cfg.label}</h2>
+                        <h2 className="font-pixel text-sm text-white">{cfg.label}</h2>
                         {showLuck && (
-                            <div className={`flex items-center gap-1 mt-1 ${
-                                luck_tier === 'jackpot' ? 'text-yellow-300' :
-                                luck_tier === 'super_lucky' ? 'text-pink-200' : 'text-green-200'
-                            }`}>
+                            <div className="mt-1 flex items-center gap-1 text-white/70">
                                 <LuckIcon className="w-3 h-3" />
                                 <span className="font-pixel text-[8px]">{luckText}</span>
                             </div>
                         )}
                     </div>
                 </div>
-                <div className={`flex flex-col items-end ${cfg.text}`}>
+                <div className="flex flex-col items-end text-white">
                     <span className="text-xs opacity-70">{isLoss ? 'moedas perdidas' : 'moedas ganhas'}</span>
-                    <div className={`flex items-center gap-1.5 text-2xl font-black mt-0.5 ${isLoss ? 'text-red-400' : ''}`}>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-2xl font-black">
                         <Coins className="w-6 h-6" />
                         <span>{isLoss ? '-' : '+'}{coins_awarded}</span>
                     </div>
@@ -188,8 +185,8 @@ function ResultPanel({ battle, stats }) {
             {/* Stats */}
             <div className="grid grid-cols-3 divide-x divide-[var(--border)] text-center py-4">
                 <StatCell label="Turnos" value={stats.totalTurns} />
-                <StatCell label="Dano causado" value={stats.playerDamageDealt} highlight="text-green-600" />
-                <StatCell label="Dano recebido" value={stats.opponentDamageDealt} highlight="text-red-500" />
+                <StatCell label="Dano causado" value={stats.playerDamageDealt} highlight="text-[var(--success)]" />
+                <StatCell label="Dano recebido" value={stats.opponentDamageDealt} highlight="text-[var(--battle)]" />
             </div>
 
             {/* Best moves */}
@@ -274,8 +271,8 @@ function BestMoveCell({ move, label }) {
 function BattleLogTable({ turns, player, opponent }) {
     return (
         <div className="overflow-x-auto max-h-72 overflow-y-auto">
-            <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[var(--surface-strong)]">
+            <table className="battle-data-table w-full text-xs">
+                <thead className="sticky top-0">
                     <tr className="text-left text-app-muted border-b border-app">
                         <th className="px-3 py-2 font-medium">#</th>
                         <th className="px-3 py-2 font-medium">Atacante</th>
@@ -298,16 +295,11 @@ function BattleLogTable({ turns, player, opponent }) {
                         const AttIcon   = isPlayer ? Sword : Bot;
 
                         return (
-                            <tr
-                                key={t.turn_number}
-                                className={`border-b border-app transition-colors ${
-                                    isPlayer ? 'hover:bg-red-500/10' : 'hover:bg-blue-500/10'
-                                }`}
-                            >
+                            <tr key={t.turn_number} className="border-b border-app transition-colors">
                                 <td className="px-3 py-1.5 text-app-soft font-mono">{t.turn_number}</td>
                                 <td className="px-3 py-1.5">
                                     <span className={`inline-flex items-center gap-1 font-medium ${
-                                        isPlayer ? 'text-red-600' : 'text-slate-500'
+                                        isPlayer ? 'text-[var(--accent)]' : 'text-app-muted'
                                     }`}>
                                         <AttIcon className="w-3 h-3" />
                                         <span className="hidden sm:inline">
@@ -325,7 +317,7 @@ function BattleLogTable({ turns, player, opponent }) {
                                         <span className="text-app">
                                             {t.move_name}
                                             {t.stab && <span className="text-xs text-app-soft ml-1">STAB</span>}
-                                            {t.is_critical && <Star className="w-3 h-3 inline ml-1 text-yellow-500 fill-yellow-500" />}
+                                            {t.is_critical && <Star className="ml-1 inline h-3 w-3 fill-[var(--coin)] text-[var(--coin)]" />}
                                         </span>
                                     </div>
                                 </td>
@@ -338,10 +330,10 @@ function BattleLogTable({ turns, player, opponent }) {
                                         : <span className="text-app-soft">—</span>
                                     }
                                 </td>
-                                <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.player_hp_remaining <= 0 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>
+                                <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.player_hp_remaining <= 0 ? 'text-[var(--battle)] font-bold' : 'text-app-muted'}`}>
                                     {Math.max(0, t.player_hp_remaining)}
                                 </td>
-                                <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.opponent_hp_remaining <= 0 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>
+                                <td className={`px-3 py-1.5 text-right font-mono tabular-nums ${t.opponent_hp_remaining <= 0 ? 'text-[var(--battle)] font-bold' : 'text-app-muted'}`}>
                                     {Math.max(0, t.opponent_hp_remaining)}
                                 </td>
                             </tr>
@@ -473,19 +465,22 @@ export default function Show({ battle }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center gap-3">
-                    <Link href={route('battles.index')} className="flex items-center gap-1 text-sm font-semibold text-app-muted hover:text-app">
-                        <ChevronLeft className="w-4 h-4" /> Histórico
-                    </Link>
-                    <span className="text-app-soft">/</span>
-                    <h2 className="text-xl font-black text-app">Batalha #{battle.id}</h2>
-                    {result && <ResultBadge result={result} />}
+                <div>
+                    <p className="technical-label text-[var(--accent)]">03 / Replay de confronto</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <Link href={route('battles.index')} className="flex items-center gap-1 text-sm font-semibold text-app-muted hover:text-app">
+                            <ChevronLeft className="w-4 h-4" /> Histórico
+                        </Link>
+                        <span className="text-app-soft">/</span>
+                        <h1 className="text-4xl font-medium tracking-[-0.06em] text-app">Batalha #{battle.id}</h1>
+                        {result && <ResultBadge result={result} />}
+                    </div>
                 </div>
             }
         >
             <Head title={`Batalha #${battle.id}`} />
 
-            <div className="py-6">
+            <div className="app-frame py-8">
                 <div className="mx-auto max-w-lg px-4">
 
                     <Arena
@@ -538,13 +533,13 @@ export default function Show({ battle }) {
 
 function ResultBadge({ result }) {
     const map = {
-        win:  { label: 'Vitória', cls: 'bg-yellow-100 text-yellow-700', Icon: Trophy },
-        loss: { label: 'Derrota', cls: 'bg-red-100 text-red-600',       Icon: Skull  },
-        draw: { label: 'Empate',  cls: 'bg-gray-100 text-gray-600',     Icon: Handshake },
+        win:  { label: 'Vitória', cls: 'result-badge--win', Icon: Trophy },
+        loss: { label: 'Derrota', cls: 'result-badge--loss', Icon: Skull },
+        draw: { label: 'Empate', cls: 'result-badge--draw', Icon: Handshake },
     };
     const { label, cls, Icon } = map[result] ?? map.draw;
     return (
-        <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${cls}`}>
+        <span className={`result-badge ${cls}`}>
             <Icon className="w-3.5 h-3.5" /> {label}
         </span>
     );

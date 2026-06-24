@@ -49,7 +49,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                     <img
                         src={avatarPreview ?? user.avatar_url}
                         alt="Avatar"
-                        className="h-16 w-16 rounded-full object-cover border-2 border-yellow-300"
+                        className="h-16 w-16 object-cover border-2 border-[var(--accent)]"
                     />
                     <div>
                         <button
@@ -127,7 +127,7 @@ export default function UpdateProfileInformationForm({ mustVerifyEmail, status, 
                     <InputLabel htmlFor="bio" value="Bio" />
                     <textarea
                         id="bio"
-                        className="mt-1 block w-full rounded-lg border-app bg-app-surface text-app shadow-sm focus:border-red-500 focus:ring-red-500 text-sm"
+                        className="mt-1 block w-full border-app bg-app-surface text-app shadow-none focus:border-[var(--accent)] focus:ring-[var(--accent)] text-sm"
                         rows={3}
                         maxLength={160}
                         value={data.bio}

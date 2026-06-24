@@ -18,7 +18,8 @@ class DashboardController extends Controller
                 COUNT(*) as total,
                 SUM(CASE WHEN result = 'win'  THEN 1 ELSE 0 END) as wins,
                 SUM(CASE WHEN result = 'loss' THEN 1 ELSE 0 END) as losses,
-                SUM(CASE WHEN result = 'draw' THEN 1 ELSE 0 END) as draws
+                SUM(CASE WHEN result = 'draw' THEN 1 ELSE 0 END) as draws,
+                SUM(CASE WHEN result = 'win' THEN coins_awarded ELSE 0 END) as total_winnings
             ")
             ->first();
 
@@ -47,6 +48,7 @@ class DashboardController extends Controller
                 'wins'    => (int) $totals->wins,
                 'losses'  => (int) $totals->losses,
                 'draws'   => (int) $totals->draws,
+                'total_winnings' => (int) $totals->total_winnings,
             ],
             'recentBattles' => $recentBattles,
         ]);
