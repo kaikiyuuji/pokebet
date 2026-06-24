@@ -4,6 +4,7 @@ use App\Http\Controllers\BattleController;
 use App\Http\Controllers\BattleHistoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RouletteController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,6 +20,10 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Hourly roulette
+    Route::get('/roulette', [RouletteController::class, 'index'])->name('roulette.index');
+    Route::post('/roulette/spin', [RouletteController::class, 'spin'])->name('roulette.spin');
 
     // Battle
     Route::get('/battle/new',         [BattleController::class, 'create'])->name('battle.new');

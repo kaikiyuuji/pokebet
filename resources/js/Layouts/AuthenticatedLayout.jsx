@@ -4,7 +4,7 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import SoundToggle from '@/Components/SoundToggle';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ChevronDown,
     Coins,
@@ -18,6 +18,7 @@ const navigation = [
     { index: '01', label: 'Visão geral', routeName: 'dashboard', href: () => route('dashboard') },
     { index: '02', label: 'Batalhar', routeName: 'battle', href: () => route('battle.new') },
     { index: '03', label: 'Arquivo', routeName: 'battles', href: () => route('battles.index') },
+    { index: '04', label: 'Roleta', routeName: 'roulette', href: () => route('roulette.index') },
 ];
 
 function isCurrent(item) {
@@ -27,6 +28,10 @@ function isCurrent(item) {
 
     if (item.routeName === 'battles') {
         return route().current('battles.*');
+    }
+
+    if (item.routeName === 'roulette') {
+        return route().current('roulette.*');
     }
 
     return route().current(item.routeName);
@@ -48,7 +53,14 @@ export default function AuthenticatedLayout({ header, children }) {
     const { auth } = usePage().props;
     const user = auth.user;
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [coinBalance, setCoinBalance] = useState(user.coins);
     const { isDark, toggleTheme } = useThemeMode();
+
+    useEffect(() => {
+        const updateBalance = (event) => setCoinBalance(event.detail.coins);
+        window.addEventListener('pokebet:coins-updated', updateBalance);
+        return () => window.removeEventListener('pokebet:coins-updated', updateBalance);
+    }, []);
 
     return (
         <div className="app-shell">
@@ -65,7 +77,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
                         <div className="coin-readout hidden min-[440px]:inline-flex">
                             <Coins className="h-4 w-4" />
-                            <span>{user.coins.toLocaleString('pt-BR')}</span>
+                            <span>{coinBalance.toLocaleString('pt-BR')}</span>
                         </div>
 
                         <button

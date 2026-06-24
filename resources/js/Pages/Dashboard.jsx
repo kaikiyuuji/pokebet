@@ -6,17 +6,35 @@ import {
     Handshake,
     Layers,
     ScrollText,
-    ShoppingBag,
     Skull,
     Swords,
     TrendingUp,
     Trophy,
+    RotateCw,
 } from 'lucide-react';
 
 const resultConfig = {
-    win: { Icon: Trophy, label: 'Vitória', color: 'text-[var(--success)]', coins: (battle) => `+${battle.coins_awarded}` },
-    loss: { Icon: Skull, label: 'Derrota', color: 'text-[var(--battle)]', coins: (battle) => `-${battle.bet_amount}` },
-    draw: { Icon: Handshake, label: 'Empate', color: 'text-app-muted', coins: () => '0' },
+    win: {
+        Icon: Trophy,
+        label: 'Vitória',
+        color: 'text-[var(--success)]',
+        coinColor: 'text-[var(--success)]',
+        coins: (battle) => `+${battle.coins_awarded}`,
+    },
+    loss: {
+        Icon: Skull,
+        label: 'Derrota',
+        color: 'text-[var(--battle)]',
+        coinColor: 'text-[var(--battle)]',
+        coins: (battle) => `-${battle.bet_amount}`,
+    },
+    draw: {
+        Icon: Handshake,
+        label: 'Empate',
+        color: 'text-app-muted',
+        coinColor: 'text-app-muted',
+        coins: () => '0',
+    },
 };
 
 function StatCell({ index, Icon, label, value, accent = false }) {
@@ -63,7 +81,10 @@ function RecentBattleRow({ battle, index }) {
             </span>
 
             <div className="flex items-center justify-between gap-5 sm:justify-end">
-                <span className="font-mono text-xs font-bold text-app">{config.coins(battle)} moedas</span>
+                <span className={`inline-flex items-center gap-1 font-mono text-xs font-bold ${config.coinColor}`}>
+                    <Coins className="h-3.5 w-3.5" />
+                    {config.coins(battle)}
+                </span>
                 <ArrowRight className="h-4 w-4 text-[var(--accent)] transition-transform group-hover:translate-x-1" />
             </div>
         </Link>
@@ -200,10 +221,10 @@ export default function Dashboard({ stats, recentBattles }) {
                         />
                         <ModuleCard
                             index="02"
-                            Icon={ShoppingBag}
-                            title="Mercado"
-                            description="Adquira novos combatentes e amplie suas opções táticas."
-                            disabled
+                            Icon={RotateCw}
+                            title="Roleta horária"
+                            description="Gire uma vez por hora e concorra a moedas ou a um giro bônus."
+                            href={route('roulette.index')}
                         />
                         <ModuleCard
                             index="03"
