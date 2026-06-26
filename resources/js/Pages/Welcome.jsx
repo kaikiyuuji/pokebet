@@ -1,129 +1,168 @@
+import BrandMark from '@/Components/BrandMark';
+import SoundToggle from '@/Components/SoundToggle';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { Head, Link } from '@inertiajs/react';
-import { Moon, Sun, Swords, Trophy, Zap, ScrollText } from 'lucide-react';
+import {
+    ArrowRight,
+    CheckCircle2,
+    Coins,
+    Moon,
+    ScrollText,
+    ShieldCheck,
+    Sun,
+    Swords,
+} from 'lucide-react';
 
-const heroPokemon = [
-    {
-        name: 'Pikachu',
-        src: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
-        className: 'right-12 bottom-12 h-56 w-56 sm:h-72 sm:w-72',
-    },
-    {
-        name: 'Charizard',
-        src: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png',
-        className: 'right-44 top-24 hidden h-48 w-48 opacity-80 lg:block',
-    },
-    {
-        name: 'Blastoise',
-        src: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/9.png',
-        className: 'right-72 bottom-6 hidden h-44 w-44 opacity-80 xl:block',
-    },
+const protocolItems = [
+    { index: '01', Icon: Swords, title: 'Escolha', text: 'Selecione um Pokémon no catálogo.' },
+    { index: '02', Icon: Coins, title: 'Aposte', text: 'Defina o risco antes do confronto.' },
+    { index: '03', Icon: ScrollText, title: 'Revise', text: 'Acompanhe replay, dano e turnos.' },
 ];
 
-function Feature({ Icon, title, text }) {
+function ProtocolItem({ index, Icon, title, text }) {
     return (
-        <div className="poke-card hover-lift p-4">
-            <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border-2 border-red-800 bg-red-100 text-red-600">
-                    <Icon className="h-5 w-5" />
-                </span>
-                <div>
-                    <p className="font-black text-app">{title}</p>
-                    <p className="mt-1 text-sm text-app-muted">{text}</p>
+        <article className="group grid gap-5 border-b border-[var(--line)] p-5 transition-colors last:border-b-0 hover:bg-[var(--paper)] sm:grid-cols-[46px_1fr]">
+            <span className="font-mono text-xs font-bold text-[var(--accent)]">{index}</span>
+            <div>
+                <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-[var(--accent)]" />
+                    <h3 className="font-semibold tracking-[-0.02em] text-app">{title}</h3>
                 </div>
+                <p className="mt-2 text-sm leading-6 text-app-muted">{text}</p>
             </div>
-        </div>
+        </article>
     );
 }
 
 export default function Welcome({ auth }) {
     const { isDark, toggleTheme } = useThemeMode();
+    const isAuthenticated = Boolean(auth?.user);
 
     return (
         <>
-            <Head title="PokéBet" />
-            <div className="app-shell relative min-h-screen overflow-hidden">
-                {heroPokemon.map((pokemon) => (
-                    <img
-                        key={pokemon.name}
-                        src={pokemon.src}
-                        alt={pokemon.name}
-                        className={`pointer-events-none absolute object-contain drop-shadow-2xl ${pokemon.className}`}
-                        loading="eager"
-                    />
-                ))}
+            <Head title="PokéBet — Battle Lab" />
 
-                <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-                    <Link href="/" className="group flex items-center gap-2">
-                        <span className="flex h-10 w-10 items-center justify-center rounded border-2 border-slate-900 bg-yellow-300 text-red-700 shadow-[3px_3px_0_#1d2a44] transition-transform group-hover:-rotate-6 group-hover:scale-105">
-                            <Zap className="h-6 w-6 fill-current" />
-                        </span>
-                        <span className="font-pixel text-sm text-app">PokéBet</span>
-                    </Link>
+            <div className="app-shell min-h-screen">
+                <header className="poke-topbar">
+                    <div className="app-frame flex min-h-[72px] items-center justify-between px-4 sm:px-6 lg:px-8">
+                        <BrandMark />
 
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={toggleTheme}
-                            className="btn-quiet flex h-10 w-10 items-center justify-center"
-                            aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
-                        >
-                            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                        </button>
-                        {auth.user ? (
-                            <Link href={route('dashboard')} className="btn-poke px-4 py-2 text-sm font-bold">
-                                Dashboard
-                            </Link>
-                        ) : (
-                            <>
-                                <Link href={route('login')} className="btn-quiet px-4 py-2 text-sm font-bold">
-                                    Entrar
+                        <div className="flex items-center gap-2">
+                            <SoundToggle className="h-10 w-10" />
+                            <button
+                                type="button"
+                                onClick={toggleTheme}
+                                className="theme-toggle h-10 w-10"
+                                aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
+                            >
+                                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                            </button>
+
+                            {isAuthenticated ? (
+                                <Link href={route('dashboard')} className="btn-poke inline-flex items-center gap-2 px-4">
+                                    Dashboard <ArrowRight className="h-3.5 w-3.5" />
                                 </Link>
-                                <Link href={route('register')} className="btn-poke px-4 py-2 text-sm font-bold">
-                                    Criar conta
-                                </Link>
-                            </>
-                        )}
+                            ) : (
+                                <>
+                                    <Link href={route('login')} className="btn-quiet inline-flex items-center hidden px-4 sm:inline-flex">
+                                        Entrar
+                                    </Link>
+                                    <Link href={route('register')} className="btn-poke inline-flex items-center gap-2 px-4">
+                                        Criar conta <ArrowRight className="h-3.5 w-3.5" />
+                                    </Link>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </header>
 
-                <main className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-7xl flex-col justify-center px-4 pb-10 sm:px-6 lg:px-8">
-                    <section className="max-w-2xl animate-fade-up py-16">
-                        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-app bg-app-surface px-3 py-1 text-xs font-bold text-app-muted">
-                            <Swords className="h-3.5 w-3.5 text-red-500" />
-                            Simulador de batalhas Pokémon
-                        </p>
-                        <h1 className="text-4xl font-black leading-tight text-app sm:text-6xl">
-                            PokéBet
-                        </h1>
-                        <p className="mt-4 max-w-xl text-base text-app-muted sm:text-lg">
-                            Escolha seu Pokémon, simule batalhas e acompanhe recompensas em uma interface inspirada nos clássicos jogos da série.
-                        </p>
+                <main>
+                    <section className="app-frame grid min-h-[650px] lg:grid-cols-[1.2fr_1fr]">
+                        <div className="flex flex-col justify-center border-b border-[var(--line)] px-4 py-16 sm:px-8 lg:border-b-0 lg:border-r lg:px-12 lg:py-24">
+                            <p className="technical-label text-[var(--accent)]">01 / Simulador de batalha</p>
+                            <h1 className="display-heading mt-7 max-w-5xl">
+                                Escolha seu Pokémon e entre na aposta.
+                            </h1>
+                            <p className="mt-8 max-w-2xl text-base leading-8 text-app-muted sm:text-lg">
+                                Escolha seu combatente, defina a aposta e acompanhe cada turno em uma interface feita para jogar sem perder os dados de vista.
+                            </p>
 
-                        <div className="mt-8 flex flex-wrap gap-3">
-                            <Link
-                                href={auth.user ? route('battle.new') : route('register')}
-                                className="btn-poke inline-flex items-center gap-2 px-6 py-3 text-sm font-bold"
-                            >
-                                <Swords className="h-4 w-4" />
-                                {auth.user ? 'Nova batalha' : 'Começar'}
-                            </Link>
-                            <Link
-                                href={auth.user ? route('battles.index') : route('login')}
-                                className="btn-quiet inline-flex items-center gap-2 px-6 py-3 text-sm font-bold"
-                            >
-                                <ScrollText className="h-4 w-4" />
-                                {auth.user ? 'Histórico' : 'Já tenho conta'}
-                            </Link>
+                            <div className="mt-10 flex flex-wrap gap-3">
+                                <Link
+                                    href={isAuthenticated ? route('battle.new') : route('register')}
+                                    className="btn-poke inline-flex items-center gap-3 px-6"
+                                >
+                                    <Swords className="h-4 w-4" />
+                                    {isAuthenticated ? 'Nova batalha' : 'Iniciar protocolo'}
+                                </Link>
+                                <Link
+                                    href={isAuthenticated ? route('battles.index') : route('login')}
+                                    className="btn-quiet inline-flex items-center gap-3 px-6"
+                                >
+                                    <ScrollText className="h-4 w-4" />
+                                    {isAuthenticated ? 'Abrir arquivo' : 'Já tenho acesso'}
+                                </Link>
+                            </div>
+
+                            <div className="mt-12 flex flex-wrap gap-x-8 gap-y-3 border-t border-[var(--line)] pt-5">
+                                <span className="technical-label flex items-center gap-2">
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-[var(--success)]" /> Replay completo
+                                </span>
+                                <span className="technical-label flex items-center gap-2">
+                                    <ShieldCheck className="h-3.5 w-3.5 text-[var(--success)]" /> Economia protegida
+                                </span>
+                            </div>
+                        </div>
+
+                        <aside className="dot-field flex flex-col justify-center p-5 sm:p-8 lg:p-10">
+                            <div className="flex items-center justify-between">
+                                <span className="technical-label bg-[var(--paper)] px-2 py-1 text-[var(--accent)]">Figura 01 / Match-up</span>
+                                <span className="bg-[var(--paper)] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-app-muted">Kanto set</span>
+                            </div>
+
+                            <div className="relative my-12 border border-[var(--ink)] bg-[var(--paper-raised)] shadow-[8px_8px_0_var(--accent)]">
+                                <div className="flex h-9 items-center justify-between border-b border-[var(--line)] px-3">
+                                    <span className="technical-label">Prévia de confronto</span>
+                                    <span className="font-mono text-xs text-[var(--battle)]">VS</span>
+                                </div>
+
+                                <div className="surface-grid relative grid min-h-[420px] place-items-center overflow-hidden">
+                                    <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-[var(--line-strong)]" />
+                                    <img
+                                        src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
+                                        alt="Pikachu"
+                                        className="absolute bottom-4 left-4 h-56 w-56 object-contain drop-shadow-xl sm:left-5 sm:h-60 sm:w-60 lg:left-6"
+                                    />
+                                    <img
+                                        src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png"
+                                        alt="Charizard"
+                                        className="absolute -top-1 right-0 h-72 w-72 object-contain drop-shadow-xl sm:right-2"
+                                    />
+                                    <span className="z-10 grid h-16 w-16 place-items-center border border-[var(--ink)] bg-[var(--paper-raised)] font-pixel text-base text-[var(--battle)] shadow-[4px_4px_0_var(--coin)]">
+                                        VS
+                                    </span>
+                                </div>
+                            </div>
+                        </aside>
+                    </section>
+
+                    <section className="app-frame border-t border-[var(--line)]">
+                        <div className="grid md:grid-cols-3">
+                            {protocolItems.map((item, index) => (
+                                <div key={item.index} className={index < protocolItems.length - 1 ? 'md:border-r md:border-[var(--line)]' : ''}>
+                                    <ProtocolItem {...item} />
+                                </div>
+                            ))}
                         </div>
                     </section>
-
-                    <section className="grid gap-4 sm:grid-cols-3">
-                        <Feature Icon={Swords} title="Batalhas rápidas" text="Escolha um Pokémon e veja os turnos se desenrolarem." />
-                        <Feature Icon={Trophy} title="Resultados claros" text="Vitória, derrota, dano e moedas aparecem sem ruído." />
-                        <Feature Icon={ScrollText} title="Histórico completo" text="Revise logs e melhores golpes depois de cada batalha." />
-                    </section>
                 </main>
+
+                <footer className="border-t border-[var(--line)]">
+                    <div className="app-frame flex flex-col gap-2 px-4 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+                        <span className="technical-label">PokeBet © {new Date().getFullYear()}</span>
+                        <span className="technical-label">Laravel / Inertia / React</span>
+                    </div>
+                </footer>
             </div>
         </>
     );

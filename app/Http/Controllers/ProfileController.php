@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,7 +25,9 @@ class ProfileController extends Controller
             'stats'           => [
                 'battles_total' => $user->battles()->count(),
                 'battles_won'   => $user->battles()->where('result', 'win')->count(),
-                'pokemon_count' => $user->pokemons()->count(),
+                'pokemon_count' => Schema::hasTable('pokemons') && Schema::hasTable('user_pokemons')
+                    ? $user->pokemons()->count()
+                    : 0,
             ],
         ]);
     }

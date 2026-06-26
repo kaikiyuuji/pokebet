@@ -1,23 +1,50 @@
+import BrandMark from '@/Components/BrandMark';
 import Dropdown from '@/Components/Dropdown';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import SoundToggle from '@/Components/SoundToggle';
 import { useThemeMode } from '@/hooks/useThemeMode';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-    Zap, Swords, ScrollText, Coins, ChevronDown, Moon, Sun, Menu, X,
+    ChevronDown,
+    Coins,
+    Menu,
+    Moon,
+    Sun,
+    X,
 } from 'lucide-react';
 
-function NavItem({ href, active, children }) {
+const navigation = [
+    { index: '01', label: 'Visão geral', routeName: 'dashboard', href: () => route('dashboard') },
+    { index: '02', label: 'Batalhar', routeName: 'battle', href: () => route('battle.new') },
+    { index: '03', label: 'Arquivo', routeName: 'battles', href: () => route('battles.index') },
+    { index: '04', label: 'Roleta', routeName: 'roulette', href: () => route('roulette.index') },
+];
+
+function isCurrent(item) {
+    if (item.routeName === 'battle') {
+        return route().current('battle.new') || route().current('battle.show');
+    }
+
+    if (item.routeName === 'battles') {
+        return route().current('battles.*');
+    }
+
+    if (item.routeName === 'roulette') {
+        return route().current('roulette.*');
+    }
+
+    return route().current(item.routeName);
+}
+
+function DesktopNavItem({ item }) {
     return (
         <Link
-            href={href}
-            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold transition-all duration-150 ${
-                active
-                    ? 'bg-white text-red-700 shadow-sm'
-                    : 'text-white/90 hover:-translate-y-0.5 hover:bg-white/15 hover:text-white'
-            }`}
+            href={item.href()}
+            className={`nav-technical ${isCurrent(item) ? 'is-active' : ''}`}
         >
-            {children}
+            <span>{item.index}</span>
+            {item.label}
         </Link>
     );
 }
@@ -25,72 +52,59 @@ function NavItem({ href, active, children }) {
 export default function AuthenticatedLayout({ header, children }) {
     const { auth } = usePage().props;
     const user = auth.user;
-    const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [coinBalance, setCoinBalance] = useState(user.coins);
     const { isDark, toggleTheme } = useThemeMode();
+
+    useEffect(() => {
+        const updateBalance = (event) => setCoinBalance(event.detail.coins);
+        window.addEventListener('pokebet:coins-updated', updateBalance);
+        return () => window.removeEventListener('pokebet:coins-updated', updateBalance);
+    }, []);
 
     return (
         <div className="app-shell">
             <nav className="poke-topbar">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between gap-4">
-                        <div className="flex min-w-0 items-center gap-5">
-                            <Link
-                                href={route('dashboard')}
-                                className="group flex shrink-0 items-center gap-2"
-                            >
-                                <span className="flex h-9 w-9 items-center justify-center rounded border-2 border-white bg-yellow-300 text-red-700 shadow-[2px_2px_0_#1d2a44] transition-transform group-hover:-rotate-6 group-hover:scale-105">
-                                    <Zap className="h-5 w-5 fill-current" />
-                                </span>
-                                <span className="font-pixel hidden text-[10px] text-white drop-shadow sm:block">
-                                    PokéBet
-                                </span>
-                            </Link>
+                <div className="app-frame grid min-h-[72px] grid-cols-[1fr_auto] items-center px-4 sm:px-6 lg:grid-cols-[240px_1fr_auto] lg:px-8">
+                    <BrandMark href={route('dashboard')} />
 
-                            <div className="hidden items-center gap-1 sm:flex">
-                                <NavItem href={route('dashboard')} active={route().current('dashboard')}>
-                                    Dashboard
-                                </NavItem>
-                                <NavItem
-                                    href={route('battle.new')}
-                                    active={route().current('battle.new') || route().current('battle.show')}
-                                >
-                                    <Swords className="h-3.5 w-3.5" /> Batalha
-                                </NavItem>
-                                <NavItem href={route('battles.index')} active={route().current('battles.*')}>
-                                    <ScrollText className="h-3.5 w-3.5" /> Histórico
-                                </NavItem>
-                            </div>
+                    <div className="hidden h-full items-stretch justify-center lg:flex">
+                        {navigation.map((item) => <DesktopNavItem key={item.index} item={item} />)}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
+
+                        <div className="coin-readout hidden min-[440px]:inline-flex">
+                            <Coins className="h-4 w-4" />
+                            <span>{coinBalance.toLocaleString('pt-BR')}</span>
                         </div>
 
-                        <div className="hidden items-center gap-3 sm:flex">
-                            <div className="flex items-center gap-1.5 rounded border-2 border-yellow-200 bg-black/20 px-3 py-1 text-sm font-black text-yellow-200 shadow-[2px_2px_0_#1d2a44]">
-                                <Coins className="h-4 w-4" />
-                                <span>{user.coins.toLocaleString('pt-BR')}</span>
-                            </div>
+                        <button
+                            type="button"
+                            onClick={toggleTheme}
+                            className="theme-toggle h-[38px] w-[38px]"
+                            aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
+                            title={isDark ? 'Tema claro' : 'Tema escuro'}
+                        >
+                            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        </button>
 
-                            <button
-                                type="button"
-                                onClick={toggleTheme}
-                                className="theme-toggle flex h-9 w-9 items-center justify-center"
-                                aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
-                                title={isDark ? 'Tema claro' : 'Tema escuro'}
-                            >
-                                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                            </button>
+                        <SoundToggle />
 
+                        <div className="hidden sm:block">
                             <Dropdown>
                                 <Dropdown.Trigger>
                                     <button
                                         type="button"
-                                        className="flex items-center gap-2 rounded px-2 py-1 text-white/95 transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-yellow-300"
+                                        className="flex h-[38px] items-center gap-2 border border-[var(--line)] bg-[var(--paper-raised)] px-2 text-app transition-colors hover:border-[var(--ink)]"
                                     >
                                         <img
                                             src={user.avatar_url}
                                             alt={user.name}
-                                            className="h-8 w-8 rounded-full border-2 border-yellow-200 object-cover"
+                                            className="h-7 w-7 border border-[var(--line)] object-cover"
                                         />
-                                        <span className="max-w-32 truncate text-sm font-semibold">{user.name}</span>
-                                        <ChevronDown className="h-4 w-4 text-yellow-100" />
+                                        <span className="max-w-28 truncate text-xs font-semibold">{user.name}</span>
+                                        <ChevronDown className="h-3.5 w-3.5 text-app-muted" />
                                     </button>
                                 </Dropdown.Trigger>
 
@@ -103,71 +117,58 @@ export default function AuthenticatedLayout({ header, children }) {
                             </Dropdown>
                         </div>
 
-                        <div className="-me-2 flex items-center gap-2 sm:hidden">
-                            <button
-                                type="button"
-                                onClick={toggleTheme}
-                                className="theme-toggle flex h-9 w-9 items-center justify-center"
-                                aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
-                            >
-                                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowingNavigationDropdown((prev) => !prev)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded border-2 border-white/70 bg-black/10 text-white transition-colors hover:bg-white/15 focus:outline-none"
-                                aria-label="Abrir menu"
-                            >
-                                {showingNavigationDropdown ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setMobileOpen((value) => !value)}
+                            className="theme-toggle h-[38px] w-[38px] lg:hidden"
+                            aria-label="Abrir navegação"
+                        >
+                            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                        </button>
                     </div>
                 </div>
 
-                <div className={(showingNavigationDropdown ? 'block' : 'hidden') + ' border-t border-white/20 bg-red-800/95 sm:hidden'}>
-                    <div className="space-y-1 px-3 pb-3 pt-2">
-                        <ResponsiveNavLink href={route('dashboard')} active={route().current('dashboard')}>
-                            Dashboard
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink href={route('battle.new')} active={route().current('battle.new') || route().current('battle.show')}>
-                            Batalha
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink href={route('battles.index')} active={route().current('battles.*')}>
-                            Histórico
-                        </ResponsiveNavLink>
-                    </div>
-
-                    <div className="border-t border-white/20 pb-4 pt-4">
-                        <div className="flex items-center gap-3 px-4">
-                            <img src={user.avatar_url} alt={user.name} className="h-10 w-10 rounded-full border-2 border-yellow-200 object-cover" />
-                            <div className="min-w-0">
-                                <div className="truncate text-base font-semibold text-white">{user.name}</div>
-                                <div className="flex items-center gap-1 text-sm font-bold text-yellow-200">
-                                    <Coins className="h-3.5 w-3.5" />
-                                    <span>{user.coins.toLocaleString('pt-BR')}</span>
+                {mobileOpen && (
+                    <div className="border-t border-[var(--line)] bg-[var(--paper)] px-4 py-4 lg:hidden">
+                        <div className="mx-auto grid max-w-3xl gap-2">
+                            {navigation.map((item) => (
+                                <ResponsiveNavLink
+                                    key={item.index}
+                                    href={item.href()}
+                                    active={isCurrent(item)}
+                                >
+                                    <span className="mr-2 text-[var(--accent)]">{item.index}</span>
+                                    {item.label}
+                                </ResponsiveNavLink>
+                            ))}
+                            <div className="mt-2 flex items-center justify-between border-t border-[var(--line)] pt-3 sm:hidden">
+                                <span className="truncate text-sm font-semibold text-app">{user.name}</span>
+                                <div className="flex gap-2">
+                                    <ResponsiveNavLink href={route('profile.edit')}>Perfil</ResponsiveNavLink>
+                                    <ResponsiveNavLink method="post" href={route('logout')} as="button">Sair</ResponsiveNavLink>
                                 </div>
                             </div>
                         </div>
-
-                        <div className="mt-3 space-y-1 px-3">
-                            <ResponsiveNavLink href={route('profile.edit')}>Perfil</ResponsiveNavLink>
-                            <ResponsiveNavLink method="post" href={route('logout')} as="button">
-                                Sair
-                            </ResponsiveNavLink>
-                        </div>
                     </div>
-                </div>
+                )}
             </nav>
 
             {header && (
                 <header className="app-header">
-                    <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                    <div className="app-frame relative z-10 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
                         <div className="animate-fade-up">{header}</div>
                     </div>
                 </header>
             )}
 
             <main className="animate-fade-up">{children}</main>
+
+            <footer className="mt-12 border-t border-[var(--line)]">
+                <div className="app-frame flex flex-col gap-2 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+                    <span className="technical-label">PokeBet © {new Date().getFullYear()}</span>
+                    <span className="technical-label">Simulação auditável / economia protegida</span>
+                </div>
+            </footer>
         </div>
     );
 }

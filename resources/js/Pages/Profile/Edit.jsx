@@ -11,32 +11,42 @@ export default function Edit({ mustVerifyEmail, status, stats }) {
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-xl font-black leading-tight text-app">Perfil</h2>}
+            header={
+                <div>
+                    <p className="technical-label text-[var(--accent)]">05 / Identidade do treinador</p>
+                    <h1 className="mt-3 text-4xl font-medium tracking-[-0.06em] text-app">Perfil.</h1>
+                </div>
+            }
         >
             <Head title="Perfil" />
 
-            <div className="py-10">
+            <div className="app-frame py-10">
                 <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <div className="poke-card overflow-hidden">
-                        <div className="h-24 bg-gradient-to-r from-red-600 via-yellow-400 to-blue-600" />
-                        <div className="px-6 pb-6">
-                            <div className="-mt-10 mb-4 flex items-end gap-4">
+                        <div className="blueprint-grid flex h-20 items-center px-6">
+                            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                                Identificação / treinador
+                            </span>
+                        </div>
+                        <div className="px-6 py-6">
+                            <div className="mb-6 flex items-center gap-4">
                                 <img
                                     src={user.avatar_url}
                                     alt={user.name}
-                                    className="h-20 w-20 rounded-full border-4 border-yellow-300 object-cover shadow-md"
+                                    className="h-20 w-20 shrink-0 border border-[var(--ink)] bg-[var(--paper)] object-cover shadow-[4px_4px_0_var(--accent)]"
                                 />
-                                <div className="mb-1 min-w-0">
-                                    <h3 className="truncate text-lg font-black text-app">{user.name}</h3>
+                                <div className="min-w-0">
+                                    <p className="technical-label text-[var(--accent)]">Conta ativa</p>
+                                    <h3 className="mt-2 truncate text-2xl font-semibold tracking-[-0.04em] text-app">{user.name}</h3>
                                     {user.username && (
-                                        <p className="text-sm text-app-muted">@{user.username}</p>
+                                        <p className="mt-1 font-mono text-xs text-app-muted">@{user.username}</p>
                                     )}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-4 border-t border-app pt-4 text-center">
                                 <div>
-                                    <p className="flex items-center justify-center gap-1 text-xl font-black text-yellow-600">
+                                    <p className="flex items-center justify-center gap-1 text-xl font-black text-[var(--coin)]">
                                         <Coins className="h-5 w-5" /> {user.coins.toLocaleString('pt-BR')}
                                     </p>
                                     <p className="mt-0.5 text-xs text-app-muted">Moedas</p>
@@ -48,7 +58,7 @@ export default function Edit({ mustVerifyEmail, status, stats }) {
                                     <p className="mt-0.5 text-xs text-app-muted">Batalhas</p>
                                 </div>
                                 <div>
-                                    <p className="flex items-center justify-center gap-1 text-xl font-black text-red-500">
+                                    <p className="flex items-center justify-center gap-1 text-xl font-black text-[var(--accent)]">
                                         <Layers className="h-5 w-5" /> {stats?.pokemon_count ?? 0}
                                     </p>
                                     <p className="mt-0.5 text-xs text-app-muted">Pokémon</p>

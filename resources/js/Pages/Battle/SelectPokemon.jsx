@@ -1,8 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { sound } from '@/hooks/useSound';
 import { formatPokedexNumber, getTypeStyle } from '@/lib/pokemon';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Swords, Check, X, Sparkles, Coins } from 'lucide-react';
+import { Search, Swords, Check, X, RefreshCw, Coins } from 'lucide-react';
 
 const ROULETTE_FALLBACK = [
     { pokeapi_id: 25, name: 'Pikachu', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png' },
@@ -30,25 +31,25 @@ function PokemonCard({ pokemon, selected, onSelect, index }) {
             type="button"
             onClick={() => onSelect(pokemon)}
             className={`
-                poke-card pokemon-card hover-lift group flex min-h-[210px] flex-col items-center gap-2 p-3 text-center
+                poke-card pokemon-card hover-lift group flex min-h-[232px] flex-col items-center gap-2 p-3 text-center
                 ${selected ? `ring-2 ring-offset-2 ${style.ring}` : ''}
             `}
             style={{ '--card-index': index }}
         >
-            <span className={`absolute inset-x-0 top-0 h-2 ${style.bg}`} />
+            <span className={`absolute inset-x-0 top-0 h-1 ${style.bg}`} />
 
             {selected && (
-                <span className="absolute right-2 top-3 flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-900 bg-yellow-300 text-slate-900 shadow-[2px_2px_0_#1d2a44] animate-pop">
+                <span className="absolute right-2 top-3 flex h-7 w-7 items-center justify-center border border-[var(--ink)] bg-[var(--coin)] text-slate-900 shadow-[3px_3px_0_var(--ink)] animate-pop">
                     <Check className="h-3.5 w-3.5" />
                 </span>
             )}
 
-            <span className="mt-2 font-mono text-xs font-bold text-app-soft">
+            <span className="technical-label mt-2 self-start text-[var(--accent)]">
                 {formatPokedexNumber(pokemon.pokeapi_id)}
             </span>
 
-            <div className="relative flex h-28 w-28 items-center justify-center rounded border border-app bg-[var(--surface-strong)]">
-                <div className="absolute inset-x-3 bottom-2 h-2 rounded bg-black/10" />
+            <div className="dot-field relative flex h-32 w-full items-center justify-center border border-app">
+                <div className="absolute inset-x-5 bottom-3 h-px bg-[var(--line-strong)]" />
                 <img
                     src={pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png'}
                     alt={pokemon.name}
@@ -58,7 +59,7 @@ function PokemonCard({ pokemon, selected, onSelect, index }) {
                 />
             </div>
 
-            <p className="min-h-[20px] max-w-full text-sm font-black capitalize leading-tight text-app">
+            <p className="min-h-[20px] max-w-full text-base font-semibold capitalize leading-tight tracking-[-0.03em] text-app">
                 {pokemon.name}
             </p>
 
@@ -79,16 +80,16 @@ function Pagination({ links }) {
                         key={i}
                         href={link.url}
                         preserveScroll
-                        className={`rounded border px-3 py-1.5 text-sm font-bold transition-all hover:-translate-y-0.5 ${
+                        className={`border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-wider transition-all hover:-translate-y-0.5 ${
                             link.active
-                                ? 'border-red-700 bg-red-600 text-white'
+                                ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                                 : 'border-app bg-app-surface text-app-muted hover:text-app'
                         }`}
                         dangerouslySetInnerHTML={{ __html: link.label }}
                     />
                     : <span
                         key={i}
-                        className="rounded border border-app px-3 py-1.5 text-sm text-app-soft opacity-60"
+                        className="border border-app px-3 py-2 font-mono text-[10px] text-app-soft opacity-60"
                         dangerouslySetInnerHTML={{ __html: link.label }}
                     />
             ))}
@@ -100,7 +101,7 @@ function SelectionBar({ selected, onClear, onStart, processing }) {
     if (!selected) return null;
 
     return (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t-4 border-red-600 bg-app-surface shadow-2xl animate-fade-up">
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--ink)] bg-app-surface shadow-[0_-8px_30px_rgba(0,0,0,0.12)] animate-fade-up">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
                 <div className="flex min-w-0 items-center gap-3">
                     <img
@@ -146,15 +147,38 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetConfirm, onCancel, userCoins, processing }) {
+function OpponentRoulette({ show, selected, candidates, phase, onBetConfirm, onCancel, userCoins, processing }) {
     const [betInput, setBetInput] = useState('');
+
+    useEffect(() => {
+        if (!show || phase !== 'spinning') return undefined;
+
+        let timer = null;
+        let tick = 0;
+        let elapsed = 0;
+
+        const playTick = () => {
+            sound.rouletteTick(tick);
+            tick += 1;
+
+            const progress = Math.min(tick / 22, 1);
+            const interval = 36 + (progress ** 2) * 128;
+            elapsed += interval;
+
+            if (elapsed < 1540) {
+                timer = window.setTimeout(playTick, interval);
+            }
+        };
+
+        playTick();
+        return () => window.clearTimeout(timer);
+    }, [show, phase]);
 
     if (!show || !selected) return null;
 
     const entries = candidates.length > 0 ? candidates : ROULETTE_FALLBACK;
     const reel = [...entries, ...entries];
-    const revealed = phase === 'revealed' && opponent;
-    const betting = phase === 'betting' && opponent;
+    const betting = phase === 'betting';
 
     const betValue = parseInt(betInput, 10) || 0;
     const canBet = betValue >= 10 && betValue <= userCoins && !processing;
@@ -170,25 +194,28 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
         return (
             <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
                 <div className="poke-card w-full max-w-sm p-5 animate-pop">
-                    <div className="mb-4 flex items-center gap-3 rounded border-2 border-slate-900 bg-[var(--surface-strong)] p-3">
+                    <div className="mb-4 flex items-center gap-3 border border-[var(--ink)] bg-[var(--surface-strong)] p-3">
                         <img
-                            src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
-                            alt={opponent.name}
+                            src={selected.sprite ?? selected.sprite_front ?? '/images/pokemon-placeholder.png'}
+                            alt={selected.name}
                             className="h-16 w-16 shrink-0 object-contain drop-shadow-md"
                         />
                         <div>
-                            <p className="font-black capitalize text-app">{opponent.name}</p>
+                            <p className="font-black capitalize text-app">{selected.name}</p>
                             <div className="mt-1 flex flex-wrap gap-1">
-                                <TypeBadge type={opponent.primary_type} size="xs" />
-                                <TypeBadge type={opponent.secondary_type} size="xs" />
+                                <TypeBadge type={selected.primary_type} size="xs" />
+                                <TypeBadge type={selected.secondary_type} size="xs" />
                             </div>
-                            <p className="mt-1 text-xs text-app-soft">é seu adversário!</p>
+                            <p className="mt-1 text-xs text-app-soft">pronto para a batalha</p>
                         </div>
                     </div>
 
                     <p className="font-black text-app">Quanto quer apostar?</p>
                     <p className="mt-0.5 text-xs text-app-muted">
-                        Saldo: <span className="font-bold text-yellow-600">{userCoins.toLocaleString('pt-BR')}</span> moedas
+                        O adversário é sorteado só depois da aposta.
+                    </p>
+                    <p className="mt-0.5 text-xs text-app-muted">
+                        Saldo: <span className="font-bold text-[var(--coin)]">{userCoins.toLocaleString('pt-BR')}</span> moedas
                     </p>
 
                     <div className="mt-3 flex gap-1.5">
@@ -206,7 +233,7 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
                     </div>
 
                     <div className="mt-2 flex items-center gap-2">
-                        <Coins className="h-5 w-5 shrink-0 text-yellow-500" />
+                        <Coins className="h-5 w-5 shrink-0 text-[var(--coin)]" />
                         <input
                             type="number"
                             min="10"
@@ -214,7 +241,7 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
                             value={betInput}
                             onChange={(e) => setBetInput(e.target.value)}
                             placeholder="Mínimo 10"
-                            className="flex-1 rounded-lg border border-app bg-app-surface px-3 py-2 text-center text-lg font-black text-app shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                            className="flex-1 border border-app bg-app-surface px-3 py-2 text-center text-lg font-black text-app focus:border-[var(--accent)] focus:outline-none focus:ring-0"
                         />
                     </div>
 
@@ -263,41 +290,24 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
             <div className="poke-card w-full max-w-xl p-5 text-center animate-pop">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-slate-900 bg-yellow-300 text-red-600 shadow-[3px_3px_0_#1d2a44]">
-                    <Sparkles className="h-6 w-6 animate-soft-pulse" />
+                <div className="roulette-status-mark mb-5">
+                    <RefreshCw className="h-5 w-5 animate-spin" />
                 </div>
                 <p className="font-pixel text-[11px] text-app">
-                    {revealed ? 'Adversário sorteado!' : 'Sorteando adversário'}
+                    Sorteando adversário
                 </p>
                 <p className="mt-2 text-sm text-app-muted">
-                    {revealed
-                        ? `${opponent.name} entrou na batalha.`
-                        : `${selected.name} está procurando o próximo desafio.`
-                    }
+                    {`${selected.name} está procurando o próximo desafio.`}
                 </p>
 
-                {revealed ? (
-                    <div className="mt-5 rounded border-2 border-slate-900 bg-[var(--surface-strong)] p-5 animate-pop">
-                        <img
-                            src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
-                            alt={opponent.name}
-                            className="mx-auto h-32 w-32 object-contain drop-shadow-xl"
-                        />
-                        <p className="mt-3 text-xl font-black capitalize text-app">{opponent.name}</p>
-                        <div className="mt-2 flex justify-center gap-1">
-                            <TypeBadge type={opponent.primary_type} size="xs" />
-                            <TypeBadge type={opponent.secondary_type} size="xs" />
-                        </div>
-                        <p className="mt-3 text-xs font-semibold uppercase text-app-soft">Definindo aposta...</p>
-                    </div>
-                ) : (
-                    <div className="roulette-window relative mt-5 overflow-hidden rounded border-2 border-slate-900 bg-[var(--surface-strong)] py-3 shadow-inner">
-                        <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 w-1 -translate-x-1/2 bg-red-600 shadow-[0_0_0_2px_#facc15]" />
+                {(
+                    <div className="roulette-window dot-field relative mt-5 overflow-hidden border border-[var(--ink)] py-3">
+                        <div className="roulette-marker pointer-events-none" />
                         <div className="roulette-track flex w-max gap-3 px-3">
                             {reel.map((pokemon, index) => (
                                 <div
                                     key={`${pokemon.pokeapi_id}-${index}`}
-                                    className="roulette-slot flex h-28 w-24 shrink-0 flex-col items-center justify-center rounded border border-app bg-app-surface p-2"
+                                    className="roulette-slot flex h-28 w-24 shrink-0 flex-col items-center justify-center border border-app bg-app-surface p-2"
                                 >
                                     <img
                                         src={pokemon.sprite ?? pokemon.sprite_front ?? '/images/pokemon-placeholder.png'}
@@ -326,8 +336,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
     const searchTimer = useRef(null);
     const [processing, setProcessing] = useState(false);
     const [showRoulette, setShowRoulette] = useState(false);
-    const [roulettePhase, setRoulettePhase] = useState('spinning');
-    const [rouletteOpponent, setRouletteOpponent] = useState(null);
+    const [roulettePhase, setRoulettePhase] = useState('betting');
 
     const rouletteCandidates = useMemo(() => {
         const pageCandidates = pokemons.data
@@ -360,46 +369,33 @@ export default function SelectPokemon({ pokemons, types, filters }) {
         );
     };
 
-    const handleStart = async () => {
+    const handleStart = () => {
         if (!selected || processing) return;
-        setProcessing(true);
+        setRoulettePhase('betting');
         setShowRoulette(true);
-        setRoulettePhase('spinning');
-        setRouletteOpponent(null);
-
-        try {
-            const [response] = await Promise.all([
-                window.axios.post(route('battle.opponent'), { pokeapi_id: selected.pokeapi_id }),
-                sleep(1600),
-            ]);
-
-            const opponent = response.data.opponent;
-            setRouletteOpponent(opponent);
-            setRoulettePhase('revealed');
-
-            await sleep(1200);
-
-            setRoulettePhase('betting');
-            setProcessing(false);
-        } catch {
-            setProcessing(false);
-            setShowRoulette(false);
-        }
     };
 
-    const handleBetConfirm = (betAmount) => {
+    const handleBetConfirm = async (betAmount) => {
+        if (processing) return;
         setProcessing(true);
+
+        // Roleta apenas cosmética: o adversário real é sorteado no servidor.
+        setRoulettePhase('spinning');
+        await sleep(1800);
+
         router.post(
             route('battle.store'),
             {
                 pokeapi_id: selected.pokeapi_id,
-                opponent_pokeapi_id: rouletteOpponent.pokeapi_id,
                 bet_amount: betAmount,
             },
             {
+                onError: () => {
+                    setProcessing(false);
+                    setRoulettePhase('betting');
+                },
                 onFinish: () => {
                     setProcessing(false);
-                    setShowRoulette(false);
                 },
             }
         );
@@ -407,8 +403,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
 
     const handleRouletteCancel = () => {
         setShowRoulette(false);
-        setRoulettePhase('spinning');
-        setRouletteOpponent(null);
+        setRoulettePhase('betting');
         setProcessing(false);
     };
 
@@ -417,32 +412,32 @@ export default function SelectPokemon({ pokemons, types, filters }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-end justify-between gap-4">
                     <div>
-                        <h2 className="flex items-center gap-2 text-xl font-black text-app">
-                            <Swords className="h-5 w-5 text-red-500" /> Nova Batalha
-                        </h2>
-                        <p className="mt-0.5 text-sm text-app-muted">Escolha seu Pokémon</p>
+                        <p className="technical-label text-[var(--accent)]">02 / Protocolo de seleção</p>
+                        <h1 className="mt-3 text-4xl font-medium tracking-[-0.06em] text-app">Escolha seu Pokémon.</h1>
+                        <p className="mt-2 text-sm text-app-muted">O primeiro passo antes do sorteio e da aposta.</p>
                     </div>
-                    <Sparkles className="hidden h-6 w-6 text-yellow-500 animate-soft-pulse sm:block" />
+                    <Swords className="hidden h-8 w-8 text-[var(--accent)] sm:block" />
                 </div>
             }
         >
             <Head title="Escolher Pokémon" />
 
-            <div className={`py-6 ${selected ? 'pb-24' : ''}`}>
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-5 space-y-3 animate-fade-up">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-soft" />
+            <div className={`${selected ? 'pb-24' : ''}`}>
+                <div className="app-frame px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+                    <div className="dot-field mb-7 grid gap-4 border border-[var(--line)] p-4 animate-fade-up lg:grid-cols-[1fr_auto] lg:items-end">
+                        <label className="relative block">
+                            <span className="technical-label mb-2 block text-[var(--accent)]">Pesquisar no catálogo</span>
+                            <Search className="absolute left-3 top-[calc(50%+0.65rem)] h-4 w-4 -translate-y-1/2 text-app-soft" />
                             <input
                                 type="text"
                                 placeholder="Buscar Pokémon..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full rounded-lg border border-app bg-app-surface py-2.5 pl-9 pr-4 text-sm text-app shadow-sm transition-colors placeholder:text-app-soft focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                                className="min-h-12 w-full border border-app bg-app-surface py-2.5 pl-9 pr-4 text-sm text-app transition-colors placeholder:text-app-soft focus:border-[var(--accent)] focus:outline-none focus:ring-0"
                             />
-                        </div>
+                        </label>
 
                         <div className="flex flex-wrap gap-2">
                             <TypeFilterButton
@@ -463,8 +458,8 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                     </div>
 
                     {!isEmpty && (
-                        <p className="mb-3 text-xs font-semibold text-app-muted">
-                            {pokemons.total} Pokémon encontrados | página {pokemons.current_page}/{pokemons.last_page}
+                        <p className="technical-label mb-4">
+                            {pokemons.total} Pokémon encontrados / página {pokemons.current_page} de {pokemons.last_page}
                         </p>
                     )}
 
@@ -517,7 +512,6 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                 selected={selected}
                 candidates={rouletteCandidates}
                 phase={roulettePhase}
-                opponent={rouletteOpponent}
                 onBetConfirm={handleBetConfirm}
                 onCancel={handleRouletteCancel}
                 userCoins={userCoins}
@@ -534,11 +528,11 @@ function TypeFilterButton({ label, slug, active, onClick }) {
         <button
             type="button"
             onClick={onClick}
-            className={`rounded-full border px-3 py-1 text-xs font-bold transition-all hover:-translate-y-0.5 ${
+            className={`border px-3 py-2 font-mono text-[9px] font-bold uppercase tracking-wider transition-all hover:-translate-y-0.5 ${
                 active
                     ? style
                         ? `${style.bg} ${style.text} border-transparent shadow`
-                        : 'border-red-700 bg-red-600 text-white shadow'
+                        : 'border-[var(--accent)] bg-[var(--accent)] text-white'
                     : 'border-app bg-app-surface text-app-muted hover:text-app'
             }`}
         >

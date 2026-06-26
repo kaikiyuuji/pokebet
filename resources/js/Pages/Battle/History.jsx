@@ -5,13 +5,13 @@ import { Trophy, Skull, Handshake, Coins, Swords, ArrowRight } from 'lucide-reac
 
 function ResultBadge({ result }) {
     const map = {
-        win: { label: 'Vitória', cls: 'bg-green-100 text-green-700 border-green-300', Icon: Trophy },
-        loss: { label: 'Derrota', cls: 'bg-red-100 text-red-700 border-red-300', Icon: Skull },
-        draw: { label: 'Empate', cls: 'bg-yellow-100 text-yellow-700 border-yellow-300', Icon: Handshake },
+        win: { label: 'Vitória', cls: 'result-badge--win', Icon: Trophy },
+        loss: { label: 'Derrota', cls: 'result-badge--loss', Icon: Skull },
+        draw: { label: 'Empate', cls: 'result-badge--draw', Icon: Handshake },
     };
-    const { label, cls, Icon } = map[result] ?? { label: result, cls: 'bg-slate-100 text-slate-600 border-slate-300', Icon: Swords };
+    const { label, cls, Icon } = map[result] ?? { label: result, cls: 'result-badge--draw', Icon: Swords };
     return (
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${cls}`}>
+        <span className={`result-badge ${cls}`}>
             <Icon className="h-3 w-3" /> {label}
         </span>
     );
@@ -61,8 +61,8 @@ function BattleRow({ battle, index }) {
 
                 <div className="flex items-center justify-center gap-2 md:flex-col">
                     <ResultIcon className={`h-7 w-7 ${
-                        battle.result === 'win' ? 'text-yellow-500' :
-                        battle.result === 'loss' ? 'text-red-500' : 'text-app-soft'
+                        battle.result === 'win' ? 'text-[var(--success)]' :
+                        battle.result === 'loss' ? 'text-[var(--battle)]' : 'text-app-soft'
                     }`} />
                     <ResultBadge result={battle.result} />
                 </div>
@@ -73,14 +73,14 @@ function BattleRow({ battle, index }) {
                 </div>
 
                 <div className="flex items-center justify-between gap-3 border-t border-app pt-3 md:flex-col md:items-end md:border-t-0 md:pt-0">
-                    <div className={`flex items-center gap-1 text-sm font-black ${isLoss ? 'text-red-500' : 'text-yellow-600'}`}>
+                    <div className={`flex items-center gap-1 text-sm font-black ${isLoss ? 'text-[var(--battle)]' : 'text-[var(--success)]'}`}>
                         <Coins className="h-4 w-4" />
                         <span>{isLoss ? '-' : '+'}{battle.coins_awarded}</span>
                     </div>
                     <p className="text-xs text-app-soft">{battle.created_at}</p>
                     <Link
                         href={route('battles.log', battle.id)}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-red-600 transition-colors hover:text-red-800"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-[var(--accent)] transition-colors hover:text-app"
                     >
                         Ver log <ArrowRight className="h-3 w-3" />
                     </Link>
@@ -102,7 +102,7 @@ function Pagination({ links }) {
                     className={[
                         'rounded border px-3 py-1.5 text-sm font-bold transition-all',
                         link.active
-                            ? 'border-red-700 bg-red-600 text-white'
+                            ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                             : link.url
                                 ? 'border-app bg-app-surface text-app-muted hover:-translate-y-0.5 hover:text-app'
                                 : 'cursor-not-allowed border-app bg-[var(--surface-muted)] text-app-soft opacity-60',
@@ -118,8 +118,11 @@ export default function History({ battles }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-xl font-black text-app">Histórico de Batalhas</h2>
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p className="technical-label text-[var(--accent)]">03 / Arquivo de combate</p>
+                        <h1 className="mt-3 text-4xl font-medium tracking-[-0.06em] text-app">Histórico de batalhas.</h1>
+                    </div>
                     <Link
                         href={route('battle.new')}
                         className="btn-poke flex items-center gap-2 px-4 py-2 text-sm font-bold"
@@ -131,7 +134,7 @@ export default function History({ battles }) {
         >
             <Head title="Histórico de Batalhas" />
 
-            <div className="px-4 py-8">
+            <div className="app-frame px-4 py-10 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-5xl space-y-4">
                     {battles.data.length === 0 ? (
                         <div className="poke-card mx-auto max-w-lg px-6 py-16 text-center animate-pop">

@@ -10,7 +10,6 @@ use App\Game\Battle\MoveSelector;
 use App\Game\Pokemon\PokeApiService;
 use App\Game\Pokemon\PokemonData;
 use App\Models\Battle;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -54,26 +53,19 @@ class BattleController extends Controller
         MoveSelector $moveSelector,
     ): RedirectResponse {
         $request->validate([
-            'pokeapi_id'          => ['required', 'integer', 'min:1', 'max:10000'],
-            'opponent_pokeapi_id' => ['nullable', 'integer', 'min:1', 'max:10000', 'different:pokeapi_id'],
-            'bet_amount'          => ['required', 'integer', 'min:10'],
+            'pokeapi_id' => ['required', 'integer', 'min:1', 'max:10000'],
+            'bet_amount' => ['required', 'integer', 'min:10'],
         ]);
 
-        $betAmount         = (int) $request->bet_amount;
-        $user              = $request->user();
-        $pokeapiId         = (int) $request->pokeapi_id;
-        $opponentPokeapiId = $request->filled('opponent_pokeapi_id')
-            ? (int) $request->opponent_pokeapi_id
-            : null;
+        $betAmount = (int) $request->bet_amount;
+        $user      = $request->user();
+        $pokeapiId = (int) $request->pokeapi_id;
 
         if ($betAmount > $user->coins) {
             return back()->withErrors(['bet_amount' => 'Saldo insuficiente para esta aposta.']);
         }
 
-        $player   = $this->pokeApi->fetchForBattle($pokeapiId);
-        $opponent = $opponentPokeapiId
-            ? $this->pokeApi->fetchForBattle($opponentPokeapiId)
-            : $this->pickBattleOpponent($pokeapiId, $moveSelector);
+        $player = $this->pokeApi->fetchForBattle($pokeapiId);
 
         if (!$moveSelector->hasDamagingMove($player->moves)) {
             return back()->withErrors([
@@ -81,28 +73,14 @@ class BattleController extends Controller
             ]);
         }
 
-        if (!$moveSelector->hasDamagingMove($opponent->moves)) {
-            $opponent = $this->pickBattleOpponent($pokeapiId, $moveSelector);
-        }
+        // Adversário sorteado apenas no servidor, após a aposta confirmada.
+        $opponent = $this->pickBattleOpponent($pokeapiId, $moveSelector);
 
         $battle = $create->execute($user, $player, $opponent, $betAmount);
         $battle = $simulate->execute($battle, $player, $opponent);
         $rewards->execute($battle);
 
         return redirect()->route('battle.show', $battle->id);
-    }
-
-    public function opponent(Request $request, MoveSelector $moveSelector): JsonResponse
-    {
-        $request->validate([
-            'pokeapi_id' => ['required', 'integer', 'min:1', 'max:10000'],
-        ]);
-
-        $opponent = $this->pickBattleOpponent((int) $request->pokeapi_id, $moveSelector);
-
-        return response()->json([
-            'opponent' => $this->serializePokemon($opponent),
-        ]);
     }
 
     // ── GET /battle/{battle} ─────────────────────────────────────

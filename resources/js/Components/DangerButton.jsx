@@ -8,7 +8,7 @@ export default function DangerButton({
         <button
             {...props}
             className={
-                `inline-flex items-center rounded-lg border-2 border-red-900 bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-[3px_3px_0_#7f1d1d] transition duration-150 ease-in-out hover:-translate-y-0.5 hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 active:translate-y-0 ${
+                `inline-flex min-h-11 items-center border border-[var(--ink)] bg-[var(--battle)] px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-white transition duration-150 ease-in-out hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0_var(--ink)] focus:outline-none ${
                     disabled && 'opacity-25'
                 } ` + className
             }
