@@ -147,18 +147,11 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetConfirm, onCancel, userCoins, processing }) {
+function OpponentRoulette({ show, selected, candidates, phase, onBetConfirm, onCancel, userCoins, processing }) {
     const [betInput, setBetInput] = useState('');
 
     useEffect(() => {
-        if (!show) return undefined;
-
-        if (phase === 'revealed') {
-            sound.rouletteReveal();
-            return undefined;
-        }
-
-        if (phase !== 'spinning') return undefined;
+        if (!show || phase !== 'spinning') return undefined;
 
         let timer = null;
         let tick = 0;
@@ -185,8 +178,7 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
 
     const entries = candidates.length > 0 ? candidates : ROULETTE_FALLBACK;
     const reel = [...entries, ...entries];
-    const revealed = phase === 'revealed' && opponent;
-    const betting = phase === 'betting' && opponent;
+    const betting = phase === 'betting';
 
     const betValue = parseInt(betInput, 10) || 0;
     const canBet = betValue >= 10 && betValue <= userCoins && !processing;
@@ -204,21 +196,24 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
                 <div className="poke-card w-full max-w-sm p-5 animate-pop">
                     <div className="mb-4 flex items-center gap-3 border border-[var(--ink)] bg-[var(--surface-strong)] p-3">
                         <img
-                            src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
-                            alt={opponent.name}
+                            src={selected.sprite ?? selected.sprite_front ?? '/images/pokemon-placeholder.png'}
+                            alt={selected.name}
                             className="h-16 w-16 shrink-0 object-contain drop-shadow-md"
                         />
                         <div>
-                            <p className="font-black capitalize text-app">{opponent.name}</p>
+                            <p className="font-black capitalize text-app">{selected.name}</p>
                             <div className="mt-1 flex flex-wrap gap-1">
-                                <TypeBadge type={opponent.primary_type} size="xs" />
-                                <TypeBadge type={opponent.secondary_type} size="xs" />
+                                <TypeBadge type={selected.primary_type} size="xs" />
+                                <TypeBadge type={selected.secondary_type} size="xs" />
                             </div>
-                            <p className="mt-1 text-xs text-app-soft">é seu adversário!</p>
+                            <p className="mt-1 text-xs text-app-soft">pronto para a batalha</p>
                         </div>
                     </div>
 
                     <p className="font-black text-app">Quanto quer apostar?</p>
+                    <p className="mt-0.5 text-xs text-app-muted">
+                        O adversário é sorteado só depois da aposta.
+                    </p>
                     <p className="mt-0.5 text-xs text-app-muted">
                         Saldo: <span className="font-bold text-[var(--coin)]">{userCoins.toLocaleString('pt-BR')}</span> moedas
                     </p>
@@ -296,33 +291,16 @@ function OpponentRoulette({ show, selected, candidates, phase, opponent, onBetCo
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
             <div className="poke-card w-full max-w-xl p-5 text-center animate-pop">
                 <div className="roulette-status-mark mb-5">
-                    <RefreshCw className={`h-5 w-5 ${revealed ? '' : 'animate-spin'}`} />
+                    <RefreshCw className="h-5 w-5 animate-spin" />
                 </div>
                 <p className="font-pixel text-[11px] text-app">
-                    {revealed ? 'Adversário sorteado!' : 'Sorteando adversário'}
+                    Sorteando adversário
                 </p>
                 <p className="mt-2 text-sm text-app-muted">
-                    {revealed
-                        ? `${opponent.name} entrou na batalha.`
-                        : `${selected.name} está procurando o próximo desafio.`
-                    }
+                    {`${selected.name} está procurando o próximo desafio.`}
                 </p>
 
-                {revealed ? (
-                    <div className="dot-field mt-5 border border-[var(--ink)] p-5 shadow-[5px_5px_0_var(--accent)] animate-pop">
-                        <img
-                            src={opponent.sprite ?? opponent.sprite_front ?? '/images/pokemon-placeholder.png'}
-                            alt={opponent.name}
-                            className="mx-auto h-32 w-32 object-contain drop-shadow-xl"
-                        />
-                        <p className="mt-3 text-xl font-black capitalize text-app">{opponent.name}</p>
-                        <div className="mt-2 flex justify-center gap-1">
-                            <TypeBadge type={opponent.primary_type} size="xs" />
-                            <TypeBadge type={opponent.secondary_type} size="xs" />
-                        </div>
-                        <p className="mt-3 text-xs font-semibold uppercase text-app-soft">Definindo aposta...</p>
-                    </div>
-                ) : (
+                {(
                     <div className="roulette-window dot-field relative mt-5 overflow-hidden border border-[var(--ink)] py-3">
                         <div className="roulette-marker pointer-events-none" />
                         <div className="roulette-track flex w-max gap-3 px-3">
@@ -358,8 +336,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
     const searchTimer = useRef(null);
     const [processing, setProcessing] = useState(false);
     const [showRoulette, setShowRoulette] = useState(false);
-    const [roulettePhase, setRoulettePhase] = useState('spinning');
-    const [rouletteOpponent, setRouletteOpponent] = useState(null);
+    const [roulettePhase, setRoulettePhase] = useState('betting');
 
     const rouletteCandidates = useMemo(() => {
         const pageCandidates = pokemons.data
@@ -392,46 +369,33 @@ export default function SelectPokemon({ pokemons, types, filters }) {
         );
     };
 
-    const handleStart = async () => {
+    const handleStart = () => {
         if (!selected || processing) return;
-        setProcessing(true);
+        setRoulettePhase('betting');
         setShowRoulette(true);
-        setRoulettePhase('spinning');
-        setRouletteOpponent(null);
-
-        try {
-            const [response] = await Promise.all([
-                window.axios.post(route('battle.opponent'), { pokeapi_id: selected.pokeapi_id }),
-                sleep(1600),
-            ]);
-
-            const opponent = response.data.opponent;
-            setRouletteOpponent(opponent);
-            setRoulettePhase('revealed');
-
-            await sleep(1200);
-
-            setRoulettePhase('betting');
-            setProcessing(false);
-        } catch {
-            setProcessing(false);
-            setShowRoulette(false);
-        }
     };
 
-    const handleBetConfirm = (betAmount) => {
+    const handleBetConfirm = async (betAmount) => {
+        if (processing) return;
         setProcessing(true);
+
+        // Roleta apenas cosmética: o adversário real é sorteado no servidor.
+        setRoulettePhase('spinning');
+        await sleep(1800);
+
         router.post(
             route('battle.store'),
             {
                 pokeapi_id: selected.pokeapi_id,
-                opponent_pokeapi_id: rouletteOpponent.pokeapi_id,
                 bet_amount: betAmount,
             },
             {
+                onError: () => {
+                    setProcessing(false);
+                    setRoulettePhase('betting');
+                },
                 onFinish: () => {
                     setProcessing(false);
-                    setShowRoulette(false);
                 },
             }
         );
@@ -439,8 +403,7 @@ export default function SelectPokemon({ pokemons, types, filters }) {
 
     const handleRouletteCancel = () => {
         setShowRoulette(false);
-        setRoulettePhase('spinning');
-        setRouletteOpponent(null);
+        setRoulettePhase('betting');
         setProcessing(false);
     };
 
@@ -549,7 +512,6 @@ export default function SelectPokemon({ pokemons, types, filters }) {
                 selected={selected}
                 candidates={rouletteCandidates}
                 phase={roulettePhase}
-                opponent={rouletteOpponent}
                 onBetConfirm={handleBetConfirm}
                 onCancel={handleRouletteCancel}
                 userCoins={userCoins}

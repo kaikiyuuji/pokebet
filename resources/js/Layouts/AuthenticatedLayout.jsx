@@ -73,7 +73,6 @@ export default function AuthenticatedLayout({ header, children }) {
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
-                        <span className="system-status hidden xl:inline-flex">Sistema online</span>
 
                         <div className="coin-readout hidden min-[440px]:inline-flex">
                             <Coins className="h-4 w-4" />

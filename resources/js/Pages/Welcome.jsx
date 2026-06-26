@@ -48,7 +48,6 @@ export default function Welcome({ auth }) {
                         <BrandMark />
 
                         <div className="flex items-center gap-2">
-                            <span className="system-status hidden sm:inline-flex">Sistema online</span>
                             <SoundToggle className="h-10 w-10" />
                             <button
                                 type="button"
@@ -78,7 +77,7 @@ export default function Welcome({ auth }) {
                 </header>
 
                 <main>
-                    <section className="app-frame grid min-h-[650px] lg:grid-cols-[1.42fr_0.78fr]">
+                    <section className="app-frame grid min-h-[650px] lg:grid-cols-[1.2fr_1fr]">
                         <div className="flex flex-col justify-center border-b border-[var(--line)] px-4 py-16 sm:px-8 lg:border-b-0 lg:border-r lg:px-12 lg:py-24">
                             <p className="technical-label text-[var(--accent)]">01 / Simulador de batalha</p>
                             <h1 className="display-heading mt-7 max-w-5xl">
@@ -115,44 +114,33 @@ export default function Welcome({ auth }) {
                             </div>
                         </div>
 
-                        <aside className="dot-field flex flex-col justify-between p-5 sm:p-8 lg:p-10">
+                        <aside className="dot-field flex flex-col justify-center p-5 sm:p-8 lg:p-10">
                             <div className="flex items-center justify-between">
-                                <span className="technical-label text-[var(--accent)]">Figura 01 / Match-up</span>
-                                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-app-muted">Kanto set</span>
+                                <span className="technical-label bg-[var(--paper)] px-2 py-1 text-[var(--accent)]">Figura 01 / Match-up</span>
+                                <span className="bg-[var(--paper)] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest text-app-muted">Kanto set</span>
                             </div>
 
-                            <div className="relative my-12 min-h-[330px] border border-[var(--ink)] bg-[var(--paper-raised)] shadow-[8px_8px_0_var(--accent)]">
+                            <div className="relative my-12 border border-[var(--ink)] bg-[var(--paper-raised)] shadow-[8px_8px_0_var(--accent)]">
                                 <div className="flex h-9 items-center justify-between border-b border-[var(--line)] px-3">
                                     <span className="technical-label">Prévia de confronto</span>
                                     <span className="font-mono text-xs text-[var(--battle)]">VS</span>
                                 </div>
 
-                                <div className="surface-grid relative grid min-h-[290px] place-items-center overflow-hidden">
+                                <div className="surface-grid relative grid min-h-[420px] place-items-center overflow-hidden">
                                     <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-[var(--line-strong)]" />
                                     <img
                                         src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
                                         alt="Pikachu"
-                                        className="absolute bottom-4 left-2 h-44 w-44 object-contain drop-shadow-xl sm:left-4"
+                                        className="absolute bottom-4 left-4 h-56 w-56 object-contain drop-shadow-xl sm:left-5 sm:h-60 sm:w-60 lg:left-6"
                                     />
                                     <img
                                         src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png"
                                         alt="Charizard"
-                                        className="absolute right-0 top-1 h-52 w-52 object-contain drop-shadow-xl sm:right-2"
+                                        className="absolute -top-1 right-0 h-72 w-72 object-contain drop-shadow-xl sm:right-2"
                                     />
-                                    <span className="z-10 grid h-14 w-14 place-items-center border border-[var(--ink)] bg-[var(--paper-raised)] font-mono text-sm font-bold text-[var(--battle)] shadow-[4px_4px_0_var(--coin)]">
+                                    <span className="z-10 grid h-16 w-16 place-items-center border border-[var(--ink)] bg-[var(--paper-raised)] font-pixel text-base text-[var(--battle)] shadow-[4px_4px_0_var(--coin)]">
                                         VS
                                     </span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 border border-[var(--ink)] bg-[var(--paper-raised)]">
-                                <div className="border-r border-[var(--line)] p-4">
-                                    <span className="technical-label">Modo</span>
-                                    <strong className="mt-2 block text-sm text-app">Simulação 1 × 1</strong>
-                                </div>
-                                <div className="p-4 text-right">
-                                    <span className="technical-label">Status</span>
-                                    <strong className="mt-2 block text-sm text-[var(--success)]">Disponível</strong>
                                 </div>
                             </div>
                         </aside>
