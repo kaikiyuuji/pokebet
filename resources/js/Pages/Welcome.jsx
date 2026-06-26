@@ -65,7 +65,7 @@ export default function Welcome({ auth }) {
                                 </Link>
                             ) : (
                                 <>
-                                    <Link href={route('login')} className="btn-quiet hidden px-4 sm:inline-flex">
+                                    <Link href={route('login')} className="btn-quiet inline-flex items-center hidden px-4 sm:inline-flex">
                                         Entrar
                                     </Link>
                                     <Link href={route('register')} className="btn-poke inline-flex items-center gap-2 px-4">
@@ -82,7 +82,7 @@ export default function Welcome({ auth }) {
                         <div className="flex flex-col justify-center border-b border-[var(--line)] px-4 py-16 sm:px-8 lg:border-b-0 lg:border-r lg:px-12 lg:py-24">
                             <p className="technical-label text-[var(--accent)]">01 / Simulador de batalha</p>
                             <h1 className="display-heading mt-7 max-w-5xl">
-                                Batalhas Pokémon, tratadas como experimento.
+                                Escolha seu Pokémon e entre na aposta.
                             </h1>
                             <p className="mt-8 max-w-2xl text-base leading-8 text-app-muted sm:text-lg">
                                 Escolha seu combatente, defina a aposta e acompanhe cada turno em uma interface feita para jogar sem perder os dados de vista.
